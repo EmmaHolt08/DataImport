@@ -10,6 +10,8 @@ from geoalchemy2 import WKTElement
 from app.database import engine, Base, get_db
 from app.models import DataImport
 
+import router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -21,6 +23,13 @@ origins = [
     "http://127.0.0.1:3000",
 ]
 
+app.include_router(router.router)
+
+@app.get('/')
+def home():
+    return{
+        "message" : "we are home"
+    }
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,       
@@ -54,7 +63,6 @@ class DataImportResponse(BaseModel):
     geometry: str
 
     model_config = {'from_attributes': True}
-
 
 @app.get("/query-data-imports/", response_model=List[DataImportResponse])
 async def query_data_imports(
