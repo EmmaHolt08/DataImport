@@ -63,7 +63,7 @@ export default function QueryForm() {
             }
 
             const queryString = params.toString();
-            const url = `http://127.0.0.1:8000/query-data-imports/?${queryString}`;
+            const url = `http://localhost:8000/query-data-imports/?${queryString}`;
 
             const response = await fetch(url);
 

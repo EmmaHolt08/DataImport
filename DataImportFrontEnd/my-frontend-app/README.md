@@ -68,3 +68,18 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+Have correct version of python interpreter (3.13.5)
+be in correct file (code)
+source .venv/bin/activate
+python3 -m pip install fastapi
+python3 -m pip install sqlalchemy
+python3 -m pip install geoalchemy2
+python3 -m pip install psycopg2-binary
+python3 -m pip install uvicorn
+create a .env file that includes the database url
+uvicorn main:app --reload
+
+be in correct directory
+use command npm install to install node modules for react
+npm start
