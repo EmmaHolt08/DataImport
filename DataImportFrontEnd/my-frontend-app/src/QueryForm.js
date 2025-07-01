@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './App.css'; 
-import MapCoords from './ReportForm.js';
+//import MapCoords from './ReportForm.js';
 
 export default function QueryForm() {
     // State for input fields
@@ -221,8 +221,6 @@ export default function QueryForm() {
                     <p className="error-message">Error: {error.message}</p>
                 )}
             </form>
-            
-            <MapCoords />
 
             <div className="query-results-section">
                 <h3>Results:</h3>

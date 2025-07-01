@@ -112,7 +112,7 @@ async def query_data_imports(
         query = query.filter(DataImport.lstype == landslide_type)
 
     if landslide_source is not None:
-        query  =query.filter(DataImport.lssource == landslide_source)
+        query  = query.filter(DataImport.lssource == landslide_source)
 
     if impact is not None:
         query = query.filter(DataImport.impact == impact)

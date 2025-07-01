@@ -135,3 +135,14 @@
 .record-item strong {
     color: #555;
 }
+
+/* Styles for the MapContainerWrapper (which holds the map) */
+.MapContainerWrapper { /* This is the outer div in your MapApp.js */
+  flex-grow: 1; /* This div will take up all available vertical space within App-header */
+  width: 100%; /* Ensure it spans full width */
+  height: 100%; /* Important: also explicitly set height to 100% of its parent (App-header) */
+  display: flex; /* Make it a flex container */
+  justify-content: center; /* Center map horizontally if it doesn't fill 100% */
+  align-items: center;   /* Center map vertically if it doesn't fill 100% */
+  background-color: #282c34; /* Light background for easy visibility if the map itself fails */
+}
