@@ -85,3 +85,5 @@ uvicorn main:app --reload
 be in correct directory
 use command npm install to install node modules for react
 npm start
+
+npm install react-router-dom 

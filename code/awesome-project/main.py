@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, Field
@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.sql import func
 from geoalchemy2 import WKTElement
+from sqlalchemy import Integer
 
 from app.database import engine, Base, get_db
 from app.models import DataImport
@@ -63,6 +64,68 @@ class DataImportResponse(BaseModel):
     geometry: str
 
     model_config = {'from_attributes': True}
+
+@app.post("/data-imports/", response_model=DataImportResponse, status_code=status.HTTP_201_CREATED)
+
+async def create_data_import(data_import: DataImportCreate, db: Session = Depends(get_db)):
+    point_geom = WKTElement(f"POINT({data_import.longitude} {data_import.latitude})", srid=4326)
+
+    db_data_import = DataImport(
+        landslideid=data_import.landslideID,
+        latitude=data_import.latitude,
+        longitude=data_import.longitude,
+        lstype=data_import.lsType,
+        lssource=data_import.lsSource,
+        impact=data_import.impact,
+        wea13_id=data_import.wea13_id,
+        wea13_type=data_import.wea13_type,
+        coords=point_geom 
+    )
+
+    db.add(db_data_import)
+    db.commit()
+    db.refresh(db_data_import)
+    
+    return DataImportResponse.model_validate({
+        "landslideID": db_data_import.landslideid,
+        "latitude": db_data_import.latitude,
+        "longitude": db_data_import.longitude,
+        "lsType": db_data_import.lstype,
+        "lsSource": db_data_import.lssource,
+        "impact": db_data_import.impact,
+        "wea13_id": db_data_import.wea13_id,
+        "wea13_type": db_data_import.wea13_type,
+        "geometry": func.ST_AsText(db_data_import.coords).compile(dialect=engine.dialect) # Convert geometry to WKT for response
+    })
+
+class MaxIDsResponse(BaseModel):
+    max_landslide_id: Optional[int]
+    max_wea13_id: Optional[int]
+
+@app.get("/get-max-ids/", response_model=MaxIDsResponse)
+async def get_max_ids(db: Session = Depends(get_db)):
+    
+    max_landslide_id = db.query(func.max(DataImport.landslideid.cast(Integer))).scalar()
+    max_wea13_id = db.query(func.max(DataImport.wea13_id.cast(Integer))).scalar()
+
+    if max_landslide_id is not None:
+        try:
+            max_landslide_id = int(max_landslide_id)
+        except ValueError:
+            max_landslide_id = None 
+            print("Warning: max_landslide_id in DB is not a valid integer string.")
+
+    if max_wea13_id is not None:
+        try:
+            max_wea13_id = int(max_wea13_id)
+        except ValueError:
+            max_wea13_id = None 
+            print("Warning: max_wea13_id in DB is not a valid integer string.")
+
+    return MaxIDsResponse(
+        max_landslide_id=max_landslide_id,
+        max_wea13_id=max_wea13_id
+    )
 
 @app.get("/query-data-imports/", response_model=List[DataImportResponse])
 async def query_data_imports(

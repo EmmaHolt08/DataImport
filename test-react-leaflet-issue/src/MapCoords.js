@@ -39,7 +39,7 @@ export default function MapCoords(){
 
     return (
       <div className = "MapContainerWrapper">
-        {map ? <DisplayPosition map={map} /> : null}
+        {/* {map ? <DisplayPosition map={map} /> : null} */}
         {/* so if you get the error with getCenter, comment out line 42, save, then uncomment and save again */}
         {displayMap}
       </div>
