@@ -40,8 +40,18 @@ export default function MapCoords(){
     return (
       <div className = "MapContainerWrapper">
         {map ? <DisplayPosition map={map} /> : null}
+        {/* so if you get the error with getCenter, comment out line 42, save, then uncomment and save again */}
         {displayMap}
-        {/* <p> "hello" </p> */}
       </div>
     )
   }
+
+  //take lon & lat as variables and store it in the form
+  // want in form: 
+  // type (drop down)
+  // source (drop down)
+  // impact (drop down)
+  // wea13 type (drop down)
+  // lon and lat from point on map (user clicks point, returns as WKT string in lon and lat, then
+  // converted to geometry coords)
+  // is assigned an id/wea13id in numerical order (starting at 100090, last in db is 10089)
