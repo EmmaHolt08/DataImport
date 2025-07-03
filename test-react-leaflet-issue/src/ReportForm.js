@@ -105,8 +105,7 @@ export default function ReportForm() {
                     lsSource: lsSource,
                     impact: impact,
                     wea13id: wea13id, 
-                    wea13type: wea13type,
-                }),
+                    wea13type: wea13type === 'None' ? null : wea13type,                }),
             });
 
             if (response.ok) {
