@@ -46,8 +46,8 @@ class DataImportCreate(BaseModel):
     lsType: str     
     lsSource: str   
     impact: str
-    wea13_id: Optional[str]
-    wea13_type: Optional[str]
+    wea13_id: Optional[str] = None
+    wea13_type: Optional[str] = None
     # The coords (geometry) will be generated from latitude/longitude
 
 # Data model for data you will send in API responses
@@ -85,6 +85,8 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
     db.add(db_data_import)
     db.commit()
     db.refresh(db_data_import)
+
+    geometry_wkt_string = db.scalar(func.ST_AsText(db_data_import.coords))
     
     return DataImportResponse.model_validate({
         "landslideID": db_data_import.landslideid,
@@ -95,7 +97,7 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
         "impact": db_data_import.impact,
         "wea13_id": db_data_import.wea13_id,
         "wea13_type": db_data_import.wea13_type,
-        "geometry": func.ST_AsText(db_data_import.coords).compile(dialect=engine.dialect) # Convert geometry to WKT for response
+        "geometry": geometry_wkt_string
     })
 
 class MaxIDsResponse(BaseModel):

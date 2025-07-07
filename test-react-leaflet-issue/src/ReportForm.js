@@ -92,7 +92,7 @@ export default function ReportForm() {
         }
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/add-data-import/', {
+            const response = await fetch('http://127.0.0.1:8000/data-imports/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ export default function ReportForm() {
                     lsSource: lsSource,
                     impact: impact,
                     wea13id: wea13id, 
-                    wea13type: wea13type === 'None' ? null : wea13type,                }),
+                    wea13type: wea13type === 'None' ? null : wea13type,}),
             });
 
             if (response.ok) {
