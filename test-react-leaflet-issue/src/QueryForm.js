@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import './App.css'; 
-//import MapCoords from './ReportForm.js';
 
 export default function QueryForm() {
     // State for input fields

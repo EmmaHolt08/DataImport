@@ -4,6 +4,9 @@ import QueryForm from './QueryForm.js';
 import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
 
+
+// figure out the report data/why its not showing up o the backend all the time ?
+// fix sizing
 export default function App() {
   return (
     <Router>

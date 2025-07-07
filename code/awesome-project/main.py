@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any 
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 from sqlalchemy.sql import func
 from geoalchemy2 import WKTElement
@@ -11,7 +12,7 @@ from sqlalchemy import Integer
 from app.database import engine, Base, get_db
 from app.models import DataImport
 
-import router
+import router 
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,13 +25,6 @@ origins = [
     "http://127.0.0.1:3000",
 ]
 
-app.include_router(router.router)
-
-@app.get('/')
-def home():
-    return{
-        "message" : "we are home"
-    }
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,       
@@ -38,6 +32,14 @@ app.add_middleware(
     allow_methods=["*"],          
     allow_headers=["*"],          
 )
+
+app.include_router(router.router)
+
+@app.get('/')
+def home():
+    return{
+        "message" : "we are home"
+    }
 
 class DataImportCreate(BaseModel):
     landslideID: str
@@ -48,7 +50,6 @@ class DataImportCreate(BaseModel):
     impact: str
     wea13_id: Optional[str] = None
     wea13_type: Optional[str] = None
-    # The coords (geometry) will be generated from latitude/longitude
 
 # Data model for data you will send in API responses
 class DataImportResponse(BaseModel):
@@ -60,13 +61,11 @@ class DataImportResponse(BaseModel):
     impact: str
     wea13_id: Optional[str]
     wea13_type: Optional[str]
-    # Geometry returned as WKT string
-    geometry: str
+    geometry: Any 
 
     model_config = {'from_attributes': True}
 
 @app.post("/data-imports/", response_model=DataImportResponse, status_code=status.HTTP_201_CREATED)
-
 async def create_data_import(data_import: DataImportCreate, db: Session = Depends(get_db)):
     point_geom = WKTElement(f"POINT({data_import.longitude} {data_import.latitude})", srid=4326)
 
@@ -86,8 +85,9 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
     db.commit()
     db.refresh(db_data_import)
 
-    geometry_wkt_string = db.scalar(func.ST_AsText(db_data_import.coords))
-    
+    geometry_geojson_string = db.scalar(func.ST_AsGeoJSON(db_data_import.coords))
+    geometry_geojson_dict = json.loads(geometry_geojson_string)
+
     return DataImportResponse.model_validate({
         "landslideID": db_data_import.landslideid,
         "latitude": db_data_import.latitude,
@@ -97,7 +97,7 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
         "impact": db_data_import.impact,
         "wea13_id": db_data_import.wea13_id,
         "wea13_type": db_data_import.wea13_type,
-        "geometry": geometry_wkt_string
+        "geometry": geometry_geojson_dict 
     })
 
 class MaxIDsResponse(BaseModel):
@@ -155,8 +155,7 @@ async def query_data_imports(
         DataImport.impact.label('impact'),
         DataImport.wea13_id.label('wea13_id'),
         DataImport.wea13_type.label('wea13_type'),
-        func.ST_AsText(DataImport.coords).label('geometry')
-    )
+        func.ST_AsGeoJSON(DataImport.coords).label('geometry_json_string')    )
 
     if search_landslideid:
         query = query.filter(DataImport.landslideid == search_landslideid)
@@ -198,4 +197,22 @@ async def query_data_imports(
     if not records:
         raise HTTPException(status_code=404, detail="No data import records found matching your criteria.")
 
-    return [DataImportResponse.model_validate(rec) for rec in records]
+    final_response_data = []
+    for rec in records:
+        rec_dict = rec._asdict() 
+        
+        # Parse the geometry string and assign it to the 'geometry' key
+        if 'geometry_json_string' in rec_dict and rec_dict['geometry_json_string'] is not None:
+            try:
+                rec_dict['geometry'] = json.loads(rec_dict['geometry_json_string'])
+            except json.JSONDecodeError:
+                print(f"Error parsing geometry string in query_data_imports: {rec_dict['geometry_json_string']}")
+                rec_dict['geometry'] = None 
+        else:
+            rec_dict['geometry'] = None 
+
+        del rec_dict['geometry_json_string'] 
+        
+        final_response_data.append(DataImportResponse.model_validate(rec_dict))
+
+    return final_response_data
