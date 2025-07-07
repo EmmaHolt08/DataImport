@@ -102,13 +102,11 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
 
 class MaxIDsResponse(BaseModel):
     max_landslide_id: Optional[int]
-    max_wea13_id: Optional[int]
 
 @app.get("/get-max-ids/", response_model=MaxIDsResponse)
 async def get_max_ids(db: Session = Depends(get_db)):
     
     max_landslide_id = db.query(func.max(DataImport.landslideid.cast(Integer))).scalar()
-    max_wea13_id = db.query(func.max(DataImport.wea13_id.cast(Integer))).scalar()
 
     if max_landslide_id is not None:
         try:
@@ -117,16 +115,9 @@ async def get_max_ids(db: Session = Depends(get_db)):
             max_landslide_id = None 
             print("Warning: max_landslide_id in DB is not a valid integer string.")
 
-    if max_wea13_id is not None:
-        try:
-            max_wea13_id = int(max_wea13_id)
-        except ValueError:
-            max_wea13_id = None 
-            print("Warning: max_wea13_id in DB is not a valid integer string.")
 
     return MaxIDsResponse(
         max_landslide_id=max_landslide_id,
-        max_wea13_id=max_wea13_id
     )
 
 @app.get("/query-data-imports/", response_model=List[DataImportResponse])

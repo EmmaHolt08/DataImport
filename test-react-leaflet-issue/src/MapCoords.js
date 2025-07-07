@@ -3,11 +3,9 @@ import { MapContainer, TileLayer, useMap, GeoJSON} from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-const center = [38.6263, -90.1751]
-const zoom = 10
+const center = [38.6263, -96.1751]
+const zoom = 5
 
-//no errors thrown or given, simply just not populating the map
-//will not show reported data yet, need to fic that in the reportform/backend
 function MapContent({ setMapInstance }) {
   const map = useMap(); 
   useEffect(() => {
@@ -56,7 +54,7 @@ export default function MapCoords(){
               latitude: item.latitude,
               longitude: item.longitude,
               lsType: item.lsType,
-              lssource: item.lssource,
+              lssource: item.lsSource,
               impact: item.impact,
               wea13_id: item.wea13_id,
               wea13_type: item.wea13_type,
@@ -90,9 +88,9 @@ export default function MapCoords(){
       layer.bindPopup(
         `<div>
           <strong>Landslide ID:</strong> ${props.landslideid}<br/>
-          <strong>Type:</strong> ${props.lsType || 'N/A'}<br/>
-          <strong>Source:</strong> ${props.lssource || 'N/A'}<br/>
-          <strong>Impact:</strong> ${props.impact || 'N/A'}<br/>
+          <strong>Type:</strong> ${props.lsType}<br/>
+          <strong>Source:</strong> ${props.lssource}<br/>
+          <strong>Impact:</strong> ${props.impact}<br/>
           <strong>Latitude:</strong> ${props.latitude}<br/>
           <strong>Longitude:</strong> ${props.longitude}<br/>
           ${props.wea13_id ? `<strong>WEA13 ID:</strong> ${props.wea13_id}<br/>` : ''}
@@ -108,7 +106,7 @@ export default function MapCoords(){
           center={center}
           zoom={zoom}
           scrollWheelZoom={false}
-          style={{ height: '1000px', width: '100%' }}
+          style={{ height: '85vh', width: '100%' }}
           >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

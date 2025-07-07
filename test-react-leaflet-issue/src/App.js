@@ -4,13 +4,11 @@ import QueryForm from './QueryForm.js';
 import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
 
-
-// figure out the report data/why its not showing up o the backend all the time ?
-// fix sizing
 export default function App() {
   return (
     <Router>
     <div className="App">
+      <h1 className="header"> Landslides </h1>
       <nav className="navbar">
         <ul className="nav-list">
           <li className="nav-item">

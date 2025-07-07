@@ -51,11 +51,7 @@ export default function ReportForm() {
                 const currentMaxLandslideID = data.max_landslide_id !== null ? parseInt(data.max_landslide_id) : 100089;
                 const nextLandslideID = currentMaxLandslideID + 1;
 
-                const currentMaxWea13id = data.max_wea13_id !== null ? parseInt(data.max_wea13_id) : 100089;
-                const nextWea13id = currentMaxWea13id + 1;
-
                 setLandslideID(String(nextLandslideID));
-                setWea13id(String(nextWea13id));
                 setStatus('idle');
                 console.log("IDs generated successfully.");
             } catch (err) {
@@ -151,17 +147,7 @@ export default function ReportForm() {
                     />
                 </div>
 
-                <div className="form-group">
-                    <label htmlFor="wea13id">wea13 ID:</label>
-                    <input
-                        id="wea13id"
-                        type="text"
-                        value={wea13id}
-                        readOnly 
-                        disabled={status === 'submitting' || status === 'generating_ids'}
-                    />
-                </div>
-
+             {/* got rid of the wea13 id because in the database they stopped generating after a certain point. Assumes outdated*/}
                 <div className="form-group">
                     <label htmlFor="latitude">Latitude (Click Map):</label>
                     <input

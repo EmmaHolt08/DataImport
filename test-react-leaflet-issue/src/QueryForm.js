@@ -237,8 +237,7 @@ export default function QueryForm() {
                                 <p><strong>Impact:</strong> {record.impact}</p>
                                 <p><strong>wea13id:</strong> {record.wea13_id}</p>
                                 <p><strong>wea13type:</strong> {record.wea13_type}</p>
-                                <p><strong>Coordinates:</strong> {record.geometry}</p>
-                            </div> 
+                                <p><strong>Coordinates:</strong> {JSON.stringify(record.geometry)}</p>                            </div> 
                         ))}
                     </div>
                 )}
