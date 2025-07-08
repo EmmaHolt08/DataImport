@@ -4,8 +4,9 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 const center = [38.6263, -96.1751]
-const zoom = 5
+const zoom = 4
 
+//makes the map
 function MapContent({ setMapInstance }) {
   const map = useMap(); 
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function MapCoords(){
     const [map, setMap] = useState(null);
     const [geoJsonData, setGeoJsonData] = useState(null);
 
+    //gets points from database
     useEffect(() => {
     const fetchPoints = async () => {
       try {
@@ -30,13 +32,13 @@ export default function MapCoords(){
         // }
         const data = await response.json();
 
-       const processedData = data.map(item => {
-          console.log("Before parsing, item.geometry type:", typeof item.geometry, "value:", item.geometry); // DEBUG LOG 1
+        const processedData = data.map(item => {
+          //console.log("Before parsing, item.geometry type:", typeof item.geometry, "value:", item.geometry); // DEBUG LOG 1
           let parsedGeometry = item.geometry;
           if (typeof item.geometry === 'string') {
             try {
               parsedGeometry = JSON.parse(item.geometry);
-              console.log("After parsing, parsedGeometry type:", typeof parsedGeometry, "value:", parsedGeometry); // DEBUG LOG 2
+              //console.log("After parsing, parsedGeometry type:", typeof parsedGeometry, "value:", parsedGeometry); // DEBUG LOG 2
             } catch (e) {
               console.error("Failed to parse geometry string for map:", e, item.geometry);
               parsedGeometry = null; // Set to null if parsing fails
@@ -45,6 +47,7 @@ export default function MapCoords(){
           return { ...item, geometry: parsedGeometry };
         });
 
+        // for popup
         const featureCollection = {
           type: 'FeatureCollection',
           features: data.map(item => ({
@@ -71,6 +74,7 @@ export default function MapCoords(){
     fetchPoints();
   }, []);
 
+        // blue circles
         const pointToLayer = (feature, latlng) => {
           return L.circleMarker(latlng, {
             radius: 5, 
@@ -82,8 +86,8 @@ export default function MapCoords(){
           });
         };
 
-        const onEachFeature = (feature, layer) => {
-    if (feature.properties) {
+      const onEachFeature = (feature, layer) => {
+      if (feature.properties) {
       const props = feature.properties;
       layer.bindPopup(
         `<div>
@@ -96,9 +100,9 @@ export default function MapCoords(){
           ${props.wea13_id ? `<strong>WEA13 ID:</strong> ${props.wea13_id}<br/>` : ''}
           ${props.wea13_type ? `<strong>WEA13 Type:</strong> ${props.wea13_type}<br/>` : ''}
         </div>`
-      );
-    }
-  };
+       );
+      }
+    };
 
       const displayMap = useMemo(
       () => (

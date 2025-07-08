@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css'; 
 
+// for marker
 import L from 'leaflet';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -37,6 +38,7 @@ export default function ReportForm() {
 
     const mapRef = useRef(null);
 
+    // gets max lsID from database and addds one to the assigned for new data
     useEffect(() => {
         const fetchMaxIDs = async () => {
             setStatus('generating_ids');
@@ -64,6 +66,7 @@ export default function ReportForm() {
         fetchMaxIDs();
     }, []); 
 
+    // set lat & long from click on map
     function MapClickHandler() {
         useMapEvents({
             click: (e) => {
@@ -88,6 +91,8 @@ export default function ReportForm() {
         }
 
         try {
+
+            // sets everything in database
             const response = await fetch('http://127.0.0.1:8000/data-imports/', {
                 method: 'POST',
                 headers: {
@@ -174,8 +179,8 @@ export default function ReportForm() {
 
                 <div className="map-input-section">
                     <MapContainer
-                        center={[38.6263, -90.1751]} 
-                        zoom={5}
+                        center={[38.6263, -97.1751]} 
+                        zoom={2}
                         scrollWheelZoom={true}
                         style={{ height: '300px', width: '100%', borderRadius: '8px', marginBottom: '15px' }}
                         whenCreated={mapInstance => { mapRef.current = mapInstance; }} 

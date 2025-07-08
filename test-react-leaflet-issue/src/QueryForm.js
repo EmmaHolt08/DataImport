@@ -26,7 +26,7 @@ export default function QueryForm() {
         setError(null); 
 
         try {
-            // Construct query parameters dynamically
+            // Construct query parameters
             const params = new URLSearchParams();
             if (searchLandslideID) {
                 params.append('search_landslideid', searchLandslideID);
@@ -67,7 +67,7 @@ export default function QueryForm() {
 
             const response = await fetch(url);
 
-            if (response.ok) { // Check if response status is 2xx
+            if (response.ok) { 
                 const data = await response.json();
                 setQueryResults(data);
                 setStatus('success');
@@ -82,7 +82,7 @@ export default function QueryForm() {
             }
         } catch (err) {
             console.error("Network or parsing error:", err);
-            setError(new Error('Failed to connect to the backend API. Please check your network or server.'));
+            setError(new Error('Failed to connect to the backend API'));
             setStatus('error');
         }
     };

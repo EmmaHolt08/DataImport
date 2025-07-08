@@ -65,6 +65,7 @@ class DataImportResponse(BaseModel):
 
     model_config = {'from_attributes': True}
 
+#report form
 @app.post("/data-imports/", response_model=DataImportResponse, status_code=status.HTTP_201_CREATED)
 async def create_data_import(data_import: DataImportCreate, db: Session = Depends(get_db)):
     point_geom = WKTElement(f"POINT({data_import.longitude} {data_import.latitude})", srid=4326)
@@ -103,6 +104,7 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
 class MaxIDsResponse(BaseModel):
     max_landslide_id: Optional[int]
 
+#for report form (gets the max ls ID)
 @app.get("/get-max-ids/", response_model=MaxIDsResponse)
 async def get_max_ids(db: Session = Depends(get_db)):
     
@@ -113,13 +115,14 @@ async def get_max_ids(db: Session = Depends(get_db)):
             max_landslide_id = int(max_landslide_id)
         except ValueError:
             max_landslide_id = None 
-            print("Warning: max_landslide_id in DB is not a valid integer string.")
+            print("Warning: max id is not valid integer.")
 
 
     return MaxIDsResponse(
         max_landslide_id=max_landslide_id,
     )
 
+#query form
 @app.get("/query-data-imports/", response_model=List[DataImportResponse])
 async def query_data_imports(
     # Query parameters 
@@ -193,6 +196,7 @@ async def query_data_imports(
         rec_dict = rec._asdict() 
         
         # Parse the geometry string and assign it to the 'geometry' key
+        # for the points on the home page/mapcoords
         if 'geometry_json_string' in rec_dict and rec_dict['geometry_json_string'] is not None:
             try:
                 rec_dict['geometry'] = json.loads(rec_dict['geometry_json_string'])
