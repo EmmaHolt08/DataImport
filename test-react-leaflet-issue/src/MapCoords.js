@@ -25,9 +25,9 @@ export default function MapCoords(){
         const apiUrl = 'http://127.0.0.1:8000/query-data-imports/';
         const response = await fetch(apiUrl);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        // if (!response.ok) {
+        //   throw new Error(`HTTP error! status: ${response.status}`);
+        // }
         const data = await response.json();
 
        const processedData = data.map(item => {

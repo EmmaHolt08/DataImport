@@ -147,7 +147,7 @@ export default function ReportForm() {
                     />
                 </div>
 
-             {/* got rid of the wea13 id because in the database they stopped generating after a certain point. Assumes outdated*/}
+             {/* got rid of the wea13 id because in the database they stopped generating after a certain point*/}
                 <div className="form-group">
                     <label htmlFor="latitude">Latitude (Click Map):</label>
                     <input
