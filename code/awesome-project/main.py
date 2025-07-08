@@ -5,14 +5,14 @@ from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
+
 from sqlalchemy.sql import func
 from geoalchemy2 import WKTElement
 from sqlalchemy import Integer
 
-from app.database import engine, Base, get_db
-from app.models import DataImport
-
-import router 
+from .app.database import engine, Base, get_db
+from .app.models import DataImport
+from . import router 
 
 Base.metadata.create_all(bind=engine)
 
@@ -72,7 +72,7 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
 
     db_data_import = DataImport(
         landslideid=data_import.landslideID,
-        latitude=data_import.latitude,
+        latitude=data_import.latitude,  
         longitude=data_import.longitude,
         lstype=data_import.lsType,
         lssource=data_import.lsSource,

@@ -67,7 +67,7 @@ export default function MapCoords(){
         };
         setGeoJsonData(featureCollection);
       } catch (error) {
-        console.error('Error fetching geographical data:', error);
+        console.error('Error fetching geo data:', error);
       }
     };
 
