@@ -47,7 +47,7 @@ export default function MapCoords(){
           return { ...item, geometry: parsedGeometry };
         });
 
-        // for popup
+        //for the popup
         const featureCollection = {
           type: 'FeatureCollection',
           features: data.map(item => ({
@@ -74,11 +74,11 @@ export default function MapCoords(){
     fetchPoints();
   }, []);
 
-        // blue circles
+        // green circles
         const pointToLayer = (feature, latlng) => {
           return L.circleMarker(latlng, {
             radius: 5, 
-            fillColor: '#3388ff',
+            fillColor: '#9cada5',
             color: '#000',
             weight: 1,
             opacity: 1,
