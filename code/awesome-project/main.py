@@ -10,9 +10,9 @@ from sqlalchemy.sql import func
 from geoalchemy2 import WKTElement
 from sqlalchemy import Integer
 
-from .app.database import engine, Base, get_db
-from .app.models import DataImport
-from . import router 
+from app.database import engine, Base, get_db
+from app.models import DataImport
+from app import router 
 
 Base.metadata.create_all(bind=engine)
 
