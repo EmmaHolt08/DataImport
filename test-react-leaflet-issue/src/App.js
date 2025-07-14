@@ -20,10 +20,6 @@ const AppContent = () => {
   const { user, userId, handleSignOut, isExplicitlyLoggedIn } = useContext(AuthContext);
 
   return (
-    // Problematic Router:
-    // This Router was present in your previous AppContent.
-    // It has been removed in the correct version.
-    // <Router>
     <div className="App">
       <h1 className="header"> Landslides </h1>
       <nav className="navbar">
@@ -44,7 +40,7 @@ const AppContent = () => {
           {user ? (
             <>
               <li className="nav-item nav-text">
-                Logged in as: {user.email || 'Anonymous'} (ID: {userId ? userId.substring(0, 8) + '...' : 'N/A'})
+                Logged in as: {user.email}
               </li>
               <li className="nav-item">
                 <button onClick={handleSignOut} className="nav-button">Logout</button>

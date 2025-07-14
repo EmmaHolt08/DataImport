@@ -13,7 +13,7 @@ const AuthPage = ({ children }) => {
       const storedUser = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
       return storedUser ? JSON.parse(storedUser) : null;
     } catch (error) {
-      console.error("Failed to parse user from localStorage:", error);
+      //console.error("Failed to parse user from localStorage:", error);
       return null;
     }
   });
@@ -25,7 +25,7 @@ const AuthPage = ({ children }) => {
       const storedLoginStatus = localStorage.getItem(LOCAL_STORAGE_EXPLICIT_LOGIN_KEY);
       return storedLoginStatus === 'true';
     } catch (error) {
-      console.error("Failed to parse explicit login status from localStorage:", error);
+      //console.error("Failed to parse explicit login status from localStorage:", error);
       return false;
     }
   });
@@ -35,7 +35,7 @@ const AuthPage = ({ children }) => {
       const storedRegisteredUsers = localStorage.getItem(LOCAL_STORAGE_REGISTERED_USERS_KEY);
       return storedRegisteredUsers ? JSON.parse(storedRegisteredUsers) : {};
     } catch (error) {
-      console.error("Failed to parse registered users from localStorage:", error);
+      //console.error("Failed to parse registered users from localStorage:", error);
       return {};
     }
   });
@@ -47,15 +47,14 @@ const AuthPage = ({ children }) => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    console.log('AuthPage: useEffect - Initializing mock authentication...');
+   //console.log('AuthPage: useEffect - Initializing mock authentication...');
     setAuthReady(true);
-    console.log('AuthPage: Mock authentication ready.');
+    //console.log('AuthPage: Mock authentication ready.');
     if (isExplicitlyLoggedIn && user) {
       setMessage(`Welcome back, ${user.email}!`);
     } else {
       setMessage('Please log in or sign up to access the application.');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -89,7 +88,7 @@ const AuthPage = ({ children }) => {
       return;
     }
 
-    const newUid = `mock-${btoa(email).slice(0, 10)}`;
+    const newUid = `${btoa(email).slice(0, 10)}`;
     const newUserProfile = { email: email, uid: newUid };
 
     setRegisteredUsers(prev => ({
@@ -101,7 +100,7 @@ const AuthPage = ({ children }) => {
     setUserId(newUid);
     setIsExplicitlyLoggedIn(true);
     setMessage('Account created successfully! You are now logged in.');
-    console.log('AuthPage: Sign up successful. User:', newUserProfile);
+   // console.log('AuthPage: Sign up successful. User:', newUserProfile);
   };
 
   const handleSignIn = async () => {
@@ -119,7 +118,7 @@ const AuthPage = ({ children }) => {
     const storedUser = registeredUsers[email];
 
     if (!storedUser) {
-      setAuthError('No account found with this email. Please sign up.');
+      setAuthError('No account found with this email/password. Please sign up.');
       setIsExplicitlyLoggedIn(false);
       return;
     }
@@ -130,7 +129,7 @@ const AuthPage = ({ children }) => {
       setUserId(loggedInUser.uid);
       setIsExplicitlyLoggedIn(true);
       setMessage('Logged in successfully!');
-      console.log('AuthPage: Mock sign in successful. User:', loggedInUser);
+      //console.log('AuthPage: sign in successful. User:', loggedInUser);
     } else {
       setAuthError('Invalid email or password.');
       setIsExplicitlyLoggedIn(false);
@@ -148,7 +147,7 @@ const AuthPage = ({ children }) => {
     setUserId(null);
     setIsExplicitlyLoggedIn(false);
     setMessage('Logged out successfully.');
-    console.log('AuthPage: Mock sign out successful.');
+    //console.log('AuthPage: sign out successful.');
 
     localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
     localStorage.removeItem(LOCAL_STORAGE_EXPLICIT_LOGIN_KEY);
@@ -171,7 +170,7 @@ const AuthPage = ({ children }) => {
   };
 
   if (!authReady) {
-    console.log('AuthPage: Rendering loading state.');
+    //console.log('AuthPage: Rendering loading state.');
     return (
       <div className="auth-loading-container">
         <div className="auth-loading-box">
@@ -182,7 +181,7 @@ const AuthPage = ({ children }) => {
   }
 
   if (!isExplicitlyLoggedIn) {
-    console.log('AuthPage: Rendering login/signup form.');
+    //console.log('AuthPage: Rendering login/signup form.');
     return (
       <AuthContext.Provider value={authContextValue}>
         <div className="auth-page-container">
@@ -253,7 +252,7 @@ const AuthPage = ({ children }) => {
     );
   }
 
-  console.log('AuthPage: User explicitly logged in. Rendering children.');
+  //console.log('AuthPage: User explicitly logged in. Rendering children.');
   return (
     <AuthContext.Provider value={authContextValue}>
       {children}
