@@ -51,6 +51,7 @@ class DataImportCreate(BaseModel):
     impact: str
     wea13_id: Optional[str] = None
     wea13_type: Optional[str] = None
+    user_id: str
 
 # Data model for data you will send in API responses
 class DataImportResponse(BaseModel):
@@ -63,6 +64,7 @@ class DataImportResponse(BaseModel):
     wea13_id: Optional[str]
     wea13_type: Optional[str]
     geometry: Any 
+    user_id: str
 
     model_config = {'from_attributes': True}
 
@@ -80,7 +82,8 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
         impact=data_import.impact,
         wea13_id=data_import.wea13_id,
         wea13_type=data_import.wea13_type,
-        coords=point_geom 
+        coords=point_geom,
+        user_id=data_import.user_id,
     )
 
     db.add(db_data_import)
@@ -99,7 +102,8 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
         "impact": db_data_import.impact,
         "wea13_id": db_data_import.wea13_id,
         "wea13_type": db_data_import.wea13_type,
-        "geometry": geometry_geojson_dict 
+        "geometry": geometry_geojson_dict,
+        "user_id": db_data_import.user_id
     })
 
 class MaxIDsResponse(BaseModel):
@@ -138,6 +142,7 @@ async def query_data_imports(
     wea13_id: Optional[str] = None,
     wea13_type: Optional[str] = None,
     coordinates: Optional[str] = None,
+    user_id: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     
@@ -150,7 +155,8 @@ async def query_data_imports(
         DataImport.impact.label('impact'),
         DataImport.wea13_id.label('wea13_id'),
         DataImport.wea13_type.label('wea13_type'),
-        func.ST_AsGeoJSON(DataImport.coords).label('geometry_json_string')    )
+        func.ST_AsGeoJSON(DataImport.coords).label('geometry_json_string'),
+        DataImport.user_id.label('user_id')    )
 
     if search_landslideid:
         query = query.filter(DataImport.landslideid == search_landslideid)
@@ -186,6 +192,9 @@ async def query_data_imports(
         lon, lat = map(float, coordinates.split())
         point_geom = WKTElement(f"POINT({lon} {lat})", srid=4326)
         query = query.filter(func.ST_Equals(DataImport.coords, point_geom))
+
+    if user_id is not None:
+        query = query.filter(DataImport.user_id == user_id)
 
     records = query.all()
 

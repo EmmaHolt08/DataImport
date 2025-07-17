@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css'; 
+import AuthPage, { AuthContext } from './AuthPage.js';
 
+
+//START HERE FOR FIXING BACKEND ERROR
 // for marker
 import L from 'leaflet';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -19,6 +22,7 @@ const landslideSources = ['Natural', 'Modified'];
 const impactOptions = ['None', 'Road', 'Econ', 'Structure'];
 const wea13Types = ['Coherent', 'Lateral Spread', 'Disrupted', 'None']; 
 
+
 export default function ReportForm() {
 
     const [landslideID, setLandslideID] = useState(''); 
@@ -30,11 +34,15 @@ export default function ReportForm() {
     const [wea13id, setWea13id] = useState(''); 
     const [wea13type, setWea13type] = useState('');
 
+   // const [userID, setUserID] = useState('');
+
     const [status, setStatus] = useState('idle'); 
     const [error, setError] = useState(null);
     const [formMessage, setFormMessage] = useState('');
 
     const [markerPosition, setMarkerPosition] = useState(null);
+
+    const {userId} = useContext(AuthContext);
 
     const mapRef = useRef(null);
 
@@ -105,8 +113,10 @@ export default function ReportForm() {
                     lsType: lsType,
                     lsSource: lsSource,
                     impact: impact,
-                    wea13id: wea13id, 
-                    wea13type: wea13type === 'None' ? null : wea13type,}),
+                    wea13id: wea13id === 'None' ? null : wea13type, 
+                    wea13type: wea13type === 'None' ? null : wea13type,
+                    userID: userId,
+                }),
             });
 
             if (response.ok) {
@@ -121,6 +131,7 @@ export default function ReportForm() {
                 setImpact('');
                 setWea13type('');
                 setMarkerPosition(null);
+                //setUserID('');
             } else {
                 const errorData = await response.json();
                 setError(new Error(errorData.detail || `Server error: ${response.status}`));
@@ -152,6 +163,18 @@ export default function ReportForm() {
                     />
                 </div>
 
+            <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label htmlFor="userID">User ID:</label>
+                    <input
+                        id="userID"
+                        type="text"
+                        value={userId}
+                        readOnly
+                        isabled={status === 'submitting' || status === 'generating_ids'}
+                    />
+                </div>
+            </form>
              {/* got rid of the wea13 id because in the database they stopped generating after a certain point*/}
                 <div className="form-group">
                     <label htmlFor="latitude">Latitude (Click Map):</label>

@@ -40,7 +40,7 @@ const AppContent = () => {
           {user ? (
             <>
               <li className="nav-item nav-text">
-                Logged in as: {user.email}
+                Logged in as: {user.email} 
               </li>
               <li className="nav-item">
                 <button onClick={handleSignOut} className="nav-button">Logout</button>
