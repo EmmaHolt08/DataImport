@@ -1,6 +1,8 @@
-
-
 import React, { useState, useEffect, createContext, useCallback } from 'react';
+
+//eventually hashed password
+
+//userid only is when sign in not sign up need fixed
 
 const LOCAL_STORAGE_AUTH_TOKEN_KEY = 'landslide_app_auth_token';
 
@@ -14,11 +16,13 @@ const AuthPage = ({ children }) => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [authError, setAuthError] = useState('');
   const [authReady, setAuthReady] = useState(false);
   const [message, setMessage] = useState('');
 
   const API_BASE_URL = 'http://127.0.0.1:8000'; 
+
   useEffect(() => {
     const storedToken = localStorage.getItem(LOCAL_STORAGE_AUTH_TOKEN_KEY);
     if (storedToken) {
@@ -33,8 +37,6 @@ const AuthPage = ({ children }) => {
 
   const fetchUserFromToken = useCallback(async (authToken) => {
   }, []);
-
-
 
   const handleSignUp = async () => {
     setAuthError('');
@@ -118,7 +120,7 @@ const AuthPage = ({ children }) => {
       console.error('Sign in network error:', error);
       setAuthError('Network error. Please try again.');
     }
-  };
+   };
 
   const handleSignOut = async () => {
     setAuthError('');
@@ -185,8 +187,22 @@ const AuthPage = ({ children }) => {
                 <span className="auth-message-span">{message}</span>
               </div>
             )}
-
+            
             <div>
+              <div className="auth-input-group">
+                <label htmlFor="username" className="auth-label">
+                  Email:
+                </label>
+                <input
+                  type="username"
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="auth-input"
+                  placeholder="your_username"
+                />
+              </div>
+            
               <div className="auth-input-group">
                 <label htmlFor="email" className="auth-label">
                   Email:
@@ -213,6 +229,7 @@ const AuthPage = ({ children }) => {
                   placeholder="••••••••"
                 />
               </div>
+
               <div className="auth-button-group">
                 <button
                   onClick={handleSignIn}

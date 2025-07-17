@@ -1,20 +1,52 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any 
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 import json
-
-
+import uuid 
 from sqlalchemy.sql import func
-from geoalchemy2 import WKTElement
-from sqlalchemy import Integer
+from geoalchemy2 import WKTElement, Geometry
+from sqlalchemy import Integer, Column, String
 
 from app.database import engine, Base, get_db
 from app.models import DataImport
-from app import router 
+from app import router
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(String, primary_key=True, index=True) 
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False) 
+
+class DataImport(Base):
+    __tablename__ = "data_imports"
+    id = Column(Integer, primary_key=True, index=True)
+    landslideid = Column(String, unique=True, index=True, nullable=False)
+    latitude = Column(String, nullable=False)
+    longitude = Column(String, nullable=False)
+    lstype = Column(String, nullable=False)
+    lssource = Column(String, nullable=False)
+    impact = Column(String, nullable=False)
+    wea13_id = Column(String, nullable=True)
+    wea13_type = Column(String, nullable=True)
+    coords = Column(Geometry(geometry_type='POINT', srid=4326), nullable=False)
+    user_id = Column(String, nullable=False)
+
 
 Base.metadata.create_all(bind=engine)
+
+async def get_current_user(token: str):
+    db = next(get_db())
+    user = db.query(User).filter(User.id == token).first()
+    db.close()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token (or user not found)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
 
 app = FastAPI()
 
@@ -42,6 +74,23 @@ def home():
         "message" : "we are home"
     }
 
+class UserCreate(BaseModel):
+    email: str 
+    password: str
+
+class UserResponse(BaseModel):
+    id: str 
+    email: str
+
+    model_config = {'from_attributes': True}
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user_id: str # User ID is a string (UUID)
+    email: str
+
+
 class DataImportCreate(BaseModel):
     landslideID: str
     latitude: float
@@ -67,6 +116,48 @@ class DataImportResponse(BaseModel):
     user_id: str
 
     model_config = {'from_attributes': True}
+
+@app.post("/register", response_model=UserResponse)
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    new_user_id = str(uuid.uuid4()) 
+    db_user = User(id=new_user_id, email=user.email, password=user.password) 
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+# @app.post("/token", response_model=Token)
+# async def login_for_access_token(email: str = Field(..., alias="username"), password: str = Field(...), db: Session = Depends(get_db)):
+#     user = db.query(User).filter(User.email == email).first()
+#     if not user or user.password != password: 
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Incorrect username or password",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     return {"access_token": user.id, "token_type": "bearer", "user_id": user.id, "email": user.email}
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(
+    email: str = Form(..., alias="username"),
+    password: str = Form(...),                
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.email == email).first()
+    if not user or user.password != password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return {"access_token": user.id, "token_type": "bearer", "user_id": user.id, "email": user.email}
 
 #report form
 @app.post("/data-imports/", response_model=DataImportResponse, status_code=status.HTTP_201_CREATED)
@@ -103,7 +194,6 @@ async def create_data_import(data_import: DataImportCreate, db: Session = Depend
         "wea13_id": db_data_import.wea13_id,
         "wea13_type": db_data_import.wea13_type,
         "geometry": geometry_geojson_dict,
-        "user_id": db_data_import.user_id
     })
 
 class MaxIDsResponse(BaseModel):
@@ -142,7 +232,6 @@ async def query_data_imports(
     wea13_id: Optional[str] = None,
     wea13_type: Optional[str] = None,
     coordinates: Optional[str] = None,
-    user_id: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     
@@ -156,7 +245,7 @@ async def query_data_imports(
         DataImport.wea13_id.label('wea13_id'),
         DataImport.wea13_type.label('wea13_type'),
         func.ST_AsGeoJSON(DataImport.coords).label('geometry_json_string'),
-        DataImport.user_id.label('user_id')    )
+       )
 
     if search_landslideid:
         query = query.filter(DataImport.landslideid == search_landslideid)
@@ -192,9 +281,6 @@ async def query_data_imports(
         lon, lat = map(float, coordinates.split())
         point_geom = WKTElement(f"POINT({lon} {lat})", srid=4326)
         query = query.filter(func.ST_Equals(DataImport.coords, point_geom))
-
-    if user_id is not None:
-        query = query.filter(DataImport.user_id == user_id)
 
     records = query.all()
 
