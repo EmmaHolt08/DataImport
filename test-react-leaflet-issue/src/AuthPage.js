@@ -1,3 +1,249 @@
+
+
+import React, { useState, useEffect, createContext, useCallback } from 'react';
+
+const LOCAL_STORAGE_AUTH_TOKEN_KEY = 'landslide_app_auth_token';
+
+export const AuthContext = createContext(null);
+
+const AuthPage = ({ children }) => {
+  const [user, setUser] = useState(null); 
+  const [userId, setUserId] = useState(null);
+  const [token, setToken] = useState(null); 
+  const [isExplicitlyLoggedIn, setIsExplicitlyLoggedIn] = useState(false);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authReady, setAuthReady] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const API_BASE_URL = 'http://127.0.0.1:8000'; 
+  useEffect(() => {
+    const storedToken = localStorage.getItem(LOCAL_STORAGE_AUTH_TOKEN_KEY);
+    if (storedToken) {
+      
+      setIsExplicitlyLoggedIn(true);
+      setToken(storedToken);
+      fetchUserFromToken(storedToken);
+
+    }
+    setAuthReady(true); 
+  }, []);
+
+  const fetchUserFromToken = useCallback(async (authToken) => {
+  }, []);
+
+
+
+  const handleSignUp = async () => {
+    setAuthError('');
+    setMessage('');
+    if (!authReady) {
+      setAuthError('Authentication not ready. Please wait.');
+      return;
+    }
+    if (!email || !password) {
+      setAuthError('Please enter both email and password.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem(LOCAL_STORAGE_AUTH_TOKEN_KEY, data.access_token);
+        setToken(data.access_token);
+        setUser({ email: data.email, uid: data.user_id });
+        setUserId(data.user_id);
+        setIsExplicitlyLoggedIn(true);
+        setMessage('Account created successfully! You are now logged in.');
+      } else {
+        const errorData = await response.json();
+        setAuthError(errorData.detail || 'Sign up failed.');
+        setIsExplicitlyLoggedIn(false);
+      }
+    } catch (error) {
+      console.error('Sign up network error:', error);
+      setAuthError('Network error. Please try again.');
+    }
+  };
+
+  const handleSignIn = async () => {
+    setAuthError('');
+    setMessage('');
+    if (!authReady) {
+      setAuthError('Authentication not ready. Please wait.');
+      return;
+    }
+    if (!email || !password) {
+      setAuthError('Please enter both email and password.');
+      return;
+    }
+
+    try {
+      const details = new URLSearchParams();
+      details.append('username', email); 
+      details.append('password', password);
+
+      const response = await fetch(`${API_BASE_URL}/token`, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: details.toString(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem(LOCAL_STORAGE_AUTH_TOKEN_KEY, data.access_token);
+        setToken(data.access_token);
+        setUser({ email: data.email, uid: data.user_id });
+        setUserId(data.user_id);
+        setIsExplicitlyLoggedIn(true);
+        setMessage('Logged in successfully!');
+      } else {
+        const errorData = await response.json();
+        setAuthError(errorData.detail || 'Invalid email or password.');
+        setIsExplicitlyLoggedIn(false);
+      }
+    } catch (error) {
+      console.error('Sign in network error:', error);
+      setAuthError('Network error. Please try again.');
+    }
+  };
+
+  const handleSignOut = async () => {
+    setAuthError('');
+    setMessage('');
+    if (!authReady) {
+      setAuthError('Authentication not ready. Please wait.');
+      return;
+    }
+    setUser(null);
+    setUserId(null);
+    setToken(null);
+    setIsExplicitlyLoggedIn(false);
+    setMessage('Logged out successfully.');
+
+    localStorage.removeItem(LOCAL_STORAGE_AUTH_TOKEN_KEY);
+  };
+
+  const authContextValue = React.useMemo(() => ({
+    user,
+    userId,
+    token, 
+    authReady,
+    isExplicitlyLoggedIn,
+    authError,
+    message,
+    handleSignIn,
+    handleSignUp,
+    handleSignOut,
+    setEmail,
+    setPassword,
+    email,
+    password,
+  }), [user, userId, token, authReady, isExplicitlyLoggedIn, authError, message, email, password]); // Add all dependencies
+
+  if (!authReady) {
+    return (
+      <div className="auth-loading-container">
+        <div className="auth-loading-box">
+          <p className="auth-loading-text">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isExplicitlyLoggedIn) {
+    return (
+      <AuthContext.Provider value={authContextValue}>
+        <div className="auth-page-container">
+          <div className="auth-form-card">
+            <h2 className="auth-form-title">
+              Landslide Report Login
+            </h2>
+
+            {authError && (
+              <div className="auth-error-message" role="alert">
+                <strong className="auth-message-strong">Error:</strong>
+                <span className="auth-message-span">{authError}</span>
+              </div>
+            )}
+
+            {message && (
+              <div className="auth-info-message" role="alert">
+                <strong className="auth-message-strong">Info:</strong>
+                <span className="auth-message-span">{message}</span>
+              </div>
+            )}
+
+            <div>
+              <div className="auth-input-group">
+                <label htmlFor="email" className="auth-label">
+                  Email:
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="auth-input"
+                  placeholder="your.email@example.com"
+                />
+              </div>
+              <div className="auth-input-group">
+                <label htmlFor="password" className="auth-label">
+                  Password:
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="auth-input"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="auth-button-group">
+                <button
+                  onClick={handleSignIn}
+                  className="auth-button auth-button-primary"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={handleSignUp}
+                  className="auth-button auth-button-secondary"
+                >
+                  Sign Up
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AuthContext.Provider>
+    );
+  }
+
+  return (
+    <AuthContext.Provider value={authContextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export default AuthPage;
+
+//Old auth page
 // import React, { useState, useEffect, createContext } from 'react';
 
 // //NOTES: change from local storage to db storage
@@ -265,246 +511,3 @@
 // };
 
 // export default AuthPage;
-
-import React, { useState, useEffect, createContext, useCallback } from 'react';
-
-const LOCAL_STORAGE_AUTH_TOKEN_KEY = 'landslide_app_auth_token';
-
-export const AuthContext = createContext(null);
-
-const AuthPage = ({ children }) => {
-  const [user, setUser] = useState(null); 
-  const [userId, setUserId] = useState(null);
-  const [token, setToken] = useState(null); 
-  const [isExplicitlyLoggedIn, setIsExplicitlyLoggedIn] = useState(false);
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [authReady, setAuthReady] = useState(false);
-  const [message, setMessage] = useState('');
-
-  const API_BASE_URL = 'http://127.0.0.1:8000'; 
-  useEffect(() => {
-    const storedToken = localStorage.getItem(LOCAL_STORAGE_AUTH_TOKEN_KEY);
-    if (storedToken) {
-      
-      setIsExplicitlyLoggedIn(true);
-      setToken(storedToken);
-      fetchUserFromToken(storedToken);
-
-    }
-    setAuthReady(true); 
-  }, []);
-
-  const fetchUserFromToken = useCallback(async (authToken) => {
-  }, []);
-
-
-
-  const handleSignUp = async () => {
-    setAuthError('');
-    setMessage('');
-    if (!authReady) {
-      setAuthError('Authentication not ready. Please wait.');
-      return;
-    }
-    if (!email || !password) {
-      setAuthError('Please enter both email and password.');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem(LOCAL_STORAGE_AUTH_TOKEN_KEY, data.access_token);
-        setToken(data.access_token);
-        setUser({ email: data.email, uid: data.user_id });
-        setUserId(data.user_id);
-        setIsExplicitlyLoggedIn(true);
-        setMessage('Account created successfully! You are now logged in.');
-      } else {
-        const errorData = await response.json();
-        setAuthError(errorData.detail || 'Sign up failed.');
-        setIsExplicitlyLoggedIn(false);
-      }
-    } catch (error) {
-      console.error('Sign up network error:', error);
-      setAuthError('Network error. Please try again.');
-    }
-  };
-
-  const handleSignIn = async () => {
-    setAuthError('');
-    setMessage('');
-    if (!authReady) {
-      setAuthError('Authentication not ready. Please wait.');
-      return;
-    }
-    if (!email || !password) {
-      setAuthError('Please enter both email and password.');
-      return;
-    }
-
-    try {
-      const details = new URLSearchParams();
-      details.append('username', email); 
-      details.append('password', password);
-
-      const response = await fetch(`${API_BASE_URL}/token`, { 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: details.toString(),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem(LOCAL_STORAGE_AUTH_TOKEN_KEY, data.access_token);
-        setToken(data.access_token);
-        setUser({ email: data.email, uid: data.user_id });
-        setUserId(data.user_id);
-        setIsExplicitlyLoggedIn(true);
-        setMessage('Logged in successfully!');
-      } else {
-        const errorData = await response.json();
-        setAuthError(errorData.detail || 'Invalid email or password.');
-        setIsExplicitlyLoggedIn(false);
-      }
-    } catch (error) {
-      console.error('Sign in network error:', error);
-      setAuthError('Network error. Please try again.');
-    }
-  };
-
-  const handleSignOut = async () => {
-    setAuthError('');
-    setMessage('');
-    if (!authReady) {
-      setAuthError('Authentication not ready. Please wait.');
-      return;
-    }
-    setUser(null);
-    setUserId(null);
-    setToken(null);
-    setIsExplicitlyLoggedIn(false);
-    setMessage('Logged out successfully.');
-
-    localStorage.removeItem(LOCAL_STORAGE_AUTH_TOKEN_KEY);
-  };
-
-  const authContextValue = React.useMemo(() => ({
-    user,
-    userId,
-    token, 
-    authReady,
-    isExplicitlyLoggedIn,
-    authError,
-    message,
-    handleSignIn,
-    handleSignUp,
-    handleSignOut,
-    setEmail,
-    setPassword,
-    email,
-    password,
-  }), [user, userId, token, authReady, isExplicitlyLoggedIn, authError, message, email, password]); // Add all dependencies
-
-  if (!authReady) {
-    return (
-      <div className="auth-loading-container">
-        <div className="auth-loading-box">
-          <p className="auth-loading-text">Loading authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isExplicitlyLoggedIn) {
-    return (
-      <AuthContext.Provider value={authContextValue}>
-        <div className="auth-page-container">
-          <div className="auth-form-card">
-            <h2 className="auth-form-title">
-              Landslide Report Login
-            </h2>
-
-            {authError && (
-              <div className="auth-error-message" role="alert">
-                <strong className="auth-message-strong">Error:</strong>
-                <span className="auth-message-span">{authError}</span>
-              </div>
-            )}
-
-            {message && (
-              <div className="auth-info-message" role="alert">
-                <strong className="auth-message-strong">Info:</strong>
-                <span className="auth-message-span">{message}</span>
-              </div>
-            )}
-
-            <div>
-              <div className="auth-input-group">
-                <label htmlFor="email" className="auth-label">
-                  Email:
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="auth-input"
-                  placeholder="your.email@example.com"
-                />
-              </div>
-              <div className="auth-input-group">
-                <label htmlFor="password" className="auth-label">
-                  Password:
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="auth-input"
-                  placeholder="••••••••"
-                />
-              </div>
-              <div className="auth-button-group">
-                <button
-                  onClick={handleSignIn}
-                  className="auth-button auth-button-primary"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={handleSignUp}
-                  className="auth-button auth-button-secondary"
-                >
-                  Sign Up
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </AuthContext.Provider>
-    );
-  }
-
-  return (
-    <AuthContext.Provider value={authContextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export default AuthPage;
