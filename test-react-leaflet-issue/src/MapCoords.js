@@ -3,6 +3,11 @@ import { MapContainer, TileLayer, useMap, GeoJSON} from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
+//error on 28 and 70 - not populating points on a map correctly
+//i think it has something to do with the changes in main
+// all the issues have something to do with the changes in main
+//sigh
+
 const center = [38.6263, -96.1751]
 const zoom = 4
 
@@ -27,18 +32,31 @@ export default function MapCoords(){
         const apiUrl = 'http://127.0.0.1:8000/query-data-imports/';
         const response = await fetch(apiUrl);
 
-        // if (!response.ok) {
-        //   throw new Error(`HTTP error! status: ${response.status}`);
-        // }
+         if (response.status === 404) {
+          const errorDetail = await response.json(); // Parse the error detail
+          console.warn("No data import records found:", errorDetail.detail);
+          setGeoJsonData({ type: 'FeatureCollection', features: [] }); // Set an empty GeoJSON to display an empty map
+          return; // Exit the function as there's no data to process
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
 
+         if (!data || data.length === 0) {
+            console.log("Received empty data array from backend.");
+            setGeoJsonData({ type: 'FeatureCollection', features: [] });
+            return;
+        }
+        
         const processedData = data.map(item => {
-          //console.log("Before parsing, item.geometry type:", typeof item.geometry, "value:", item.geometry); // DEBUG LOG 1
+          console.log("Before parsing, item.geometry type:", typeof item.geometry, "value:", item.geometry); // DEBUG LOG 1
           let parsedGeometry = item.geometry;
           if (typeof item.geometry === 'string') {
             try {
               parsedGeometry = JSON.parse(item.geometry);
-              //console.log("After parsing, parsedGeometry type:", typeof parsedGeometry, "value:", parsedGeometry); // DEBUG LOG 2
+              console.log("After parsing, parsedGeometry type:", typeof parsedGeometry, "value:", parsedGeometry); // DEBUG LOG 2
             } catch (e) {
               console.error("Failed to parse geometry string for map:", e, item.geometry);
               parsedGeometry = null; // Set to null if parsing fails

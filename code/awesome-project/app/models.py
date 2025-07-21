@@ -22,11 +22,13 @@ class DataImport(Base):
 
     impact = Column(String)
 
-    wea13_id = Column(Integer)
+    wea13_id = Column(Integer, nullable = True)
 
-    wea13_type = Column(String)
+    wea13_type = Column(String, nullable = True)
 
     coords = Column(Geometry(geometry_type='POINT', srid=4326))
+
+    user_id = Column(String, nullable = True)
 
 
     # A helpful representation for debugging and printing Product objects

@@ -1,14 +1,14 @@
 import './App.css';
-import React, {useContext} from 'react'
+import React, { useContext } from 'react' 
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import QueryForm from './QueryForm.js';
 import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
-import AuthPage, { AuthContext } from './AuthPage.js';
+import AuthPage, { AuthContext } from './AuthPage.js'; 
 
 export default function App() {
   return (
-    <Router> {/* First Router */}
+    <Router>
       <AuthPage>
         <AppContent/>
       </AuthPage>
@@ -17,7 +17,21 @@ export default function App() {
 }
 
 const AppContent = () => {
-  const { user, userId, handleSignOut, isExplicitlyLoggedIn } = useContext(AuthContext);
+  const { user, token, handleSignOut, isLoadingAuth } = useContext(AuthContext); 
+
+  const isAuthenticated = !!user; 
+
+  if (isLoadingAuth) {
+    return (
+      <div className="app-loading">
+        <p>Initializing application...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="App">
@@ -27,7 +41,7 @@ const AppContent = () => {
           <li className="nav-item">
             <Link to="/" className="nav-list">Home</Link>
           </li>
-          {isExplicitlyLoggedIn && (
+          {isAuthenticated && (
             <>
               <li className="nav-item">
                 <Link to="/query" className="nav-list">Query</Link>
@@ -37,7 +51,7 @@ const AppContent = () => {
               </li>
             </>
           )}
-          {user ? (
+          {user ? ( 
             <>
               <li className="nav-item nav-text">
                 Logged in as: {user.email} 
@@ -55,32 +69,10 @@ const AppContent = () => {
       <div className="content-area">
         <Routes>
           <Route path="/" element={<MapCoords/>} />
-          {isExplicitlyLoggedIn && (
-            <>
-              <Route path="/query" element={<QueryForm/>} />
-              <Route path="/report" element={<ReportForm/>} />
-            </>
-          )}
-          {!isExplicitlyLoggedIn && (
-            <Route path="/query" element={<NoAccessMessage />} />
-          )}
-          {!isExplicitlyLoggedIn && (
-            <Route path="/report" element={<NoAccessMessage />} />
-          )}
+          <Route path="/query" element={<QueryForm/>} />
+          <Route path="/report" element={<ReportForm/>} />
         </Routes>
       </div>
     </div>
-    // </Router> // This closing tag was also present.
   );
 };
-
-const NoAccessMessage = () => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-    <div className="bg-white p-8 rounded-xl shadow-lg text-center">
-      <p className="text-lg text-red-700">Please log in to access this page.</p>
-    </div>
-  </div>
-);
-
-// no mock id displayed
-// fix formatting of sign in page

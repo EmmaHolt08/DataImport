@@ -3,8 +3,6 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaf
 import 'leaflet/dist/leaflet.css'; 
 import AuthPage, { AuthContext } from './AuthPage.js';
 
-
-//START HERE FOR FIXING BACKEND ERROR
 // for marker
 import L from 'leaflet';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -115,7 +113,7 @@ export default function ReportForm() {
                     impact: impact,
                     wea13id: wea13id === 'None' ? null : wea13type, 
                     wea13type: wea13type === 'None' ? null : wea13type,
-                    userID: userId,
+                    user_id: userId,
                 }),
             });
 
