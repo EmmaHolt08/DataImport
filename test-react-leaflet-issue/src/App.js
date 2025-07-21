@@ -6,6 +6,22 @@ import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
 import AuthPage, { AuthContext } from './AuthPage.js'; 
 
+//PROBLEMS (not crashing/no errors though, just logic/execution)
+// when sign up or sign in, userid isnt being displayed in report form
+// username isnt being displayed on nav bar
+// when reload, the page logs you out
+// there is a front end warning but i dont think i care about it
+
+//COMPLETED MONDAY (because i forgot where i left off friday)
+// linked sing up to user db
+// fixed a ton of errors with that (mostly i can't name correctly)
+// remembered to push it up
+
+//TO DO
+// fix problems
+// hash password (probably includes removing the test123 user)
+
+
 export default function App() {
   return (
     <Router>

@@ -36,3 +36,21 @@ class DataImport(Base):
         return (f"<DataImport(landslideid={self.landslideid}, latitude={self.latitude}, longitude={self.longitude},"
                 f"lstype={self.lstype}, lssource={self.lssource}, impact={self.impact}, wea13_id={self.wea13_id},"
                 f"wea13_type={self.wea13_type}, coords={self.coords})>")
+    
+
+class UserInfo (Base):
+
+    __tablename__ = "user_info"
+
+    user_id = Column (String, primary_key = True, index = True)
+
+    username = Column (String)
+
+    user_email = Column (String)
+
+    user_password = Column (String)
+
+    #eventually i will have a hashed password there too
+
+    def __repr__(self):
+        return (f"<UserInfo(user_id={self.user_id}, username={self.username}, user_email={self.user_email}, user_password={self.user_password}),>")

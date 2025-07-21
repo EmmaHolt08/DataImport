@@ -10,14 +10,8 @@ from geoalchemy2 import WKTElement, Geometry
 from sqlalchemy import Integer, Column, String
 
 from app.database import engine, Base, get_db
-from app.models import DataImport
+from app.models import DataImport, UserInfo
 from app import router
-
-class User(Base):
-    __tablename__ = "users"
-    id = Column(String, primary_key=True, index=True) 
-    email = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False) 
 
 
 Base.metadata.create_all(bind=engine)
@@ -28,22 +22,22 @@ async def get_current_user(
     db: Session = Depends(get_db) 
 ):
   
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication scheme. Must be Bearer token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # if not authorization.startswith("Bearer "):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid authentication scheme. Must be Bearer token.",
+    #         headers={"WWW-Authenticate": "Bearer"},
+    #     )
 
     token = authorization.split(" ")[1]
 
-    user = db.query(User).filter(User.id == token).first()
+    user = db.query(UserInfo).filter(UserInfo.id == token).first()
 
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token (or user not found)",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate"},
         )
     return user # Return the User ORM object
 
@@ -55,6 +49,9 @@ origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:8000",
 ]
 
 app.add_middleware(
@@ -74,20 +71,23 @@ def home():
     }
 
 class UserCreate(BaseModel):
+    username: str
     email: str 
     password: str
 
 class UserResponse(BaseModel):
-    id: str 
-    email: str
+    user_id: str = Field(alias='user_id')
+    username: str
+    email: str = Field(alias='user_email')
 
     model_config = {'from_attributes': True}
 
 class Token(BaseModel):
     access_token: str
     token_type: str
-    user_id: str # User ID is a string (UUID)
-    email: str
+    user_id: str
+    username: str
+    user_email: str
 
 
 class DataImportCreate(BaseModel):
@@ -116,51 +116,64 @@ class DataImportResponse(BaseModel):
 
     model_config = {'from_attributes': True}
 
+
 @app.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
+    db_user = db.query(UserInfo).filter(UserInfo.user_email == user.email).first()
     if db_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
+    db_user2 = db.query(UserInfo).filter(UserInfo.username == user.username).first()
+    if db_user2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username taken. Choose a new one"
+        )
     
     new_user_id = str(uuid.uuid4()) 
-    db_user = User(id=new_user_id, email=user.email, password=user.password) 
+    db_user = UserInfo(user_id=new_user_id, username=user.username, user_email=user.email, user_password=user.password) 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
 
+
 @app.get("/users/me", response_model=UserResponse)
 async def read_users_me(
-    current_user: User = Depends(get_current_user),
+    current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     return {
-        "id": current_user.id,
-        "email": current_user.email
+        "id": current_user.user_id,
+        "username": current_user.username,
+        "email": current_user.user_email,
+       # "password": current_user.user_password,
     }
 
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(
-    email: str = Form(..., alias="username"),
+    email: str = Form(..., alias="email"),
+   # username: str = Form(...),
     password: str = Form(...),                
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.email == email).first()
-    if not user or user.password != password:
+    user = db.query(UserInfo).filter(UserInfo.user_email == email).first()
+    if not user or user.user_password != password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return {
-        "access_token": user.id, 
+        "access_token": user.user_id, 
         "token_type": "bearer",
-        "user_id": user.id, 
-        "email": user.email
+        "user_id": user.user_id, 
+        "username": user.username,
+        "user_email": user.user_email,
+       # "password": user.user_password
     }
 
 #report form

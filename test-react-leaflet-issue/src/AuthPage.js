@@ -17,6 +17,7 @@ const AuthPage = ({ children }) => {
 
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
+  const [inputUsername, setInputUsername] = useState('');
 
   const API_BASE_URL = 'http://127.0.0.1:8000'; 
 
@@ -29,8 +30,8 @@ const AuthPage = ({ children }) => {
       if (authToken && userData) {
           localStorage.setItem(LOCAL_STORAGE_AUTH_TOKEN_KEY, authToken);
           setToken(authToken);
-          setUser({ email: userData.email, uid: userData.id }); 
-          setUserId(userData.id); 
+          setUser({ email: userData.email, uid: userData.user_id, username: userData.username });
+          setUserId(userData.user_id);
       } else {
           localStorage.removeItem(LOCAL_STORAGE_AUTH_TOKEN_KEY);
           setToken(null);
@@ -56,8 +57,8 @@ const AuthPage = ({ children }) => {
 
           if (response.ok) {
               const data = await response.json(); 
-              if (data && typeof data.id === 'string' && typeof data.email === 'string') {
-                  applyAuthData(authToken, { id: data.id, email: data.email }); 
+              if (data && typeof data.user_id === 'string' && typeof data.email === 'string') {
+                  applyAuthData(authToken, { user_id: data.user_id, email: data.email, username: data.username }); 
               } else {
                   console.error("DEBUG: /users/me response missing expected 'id' or 'email' or wrong type:", data);
                   applyAuthData(null); 
@@ -89,8 +90,8 @@ const AuthPage = ({ children }) => {
   const handleSignUp = async () => { 
     setAuthError('');
     setMessage('');
-    if (!inputEmail || !inputPassword) {
-      setAuthError('Please enter both email and password.');
+    if (!inputEmail || !inputPassword || !inputUsername) {
+      setAuthError('Please enter email, username, and password.');
       return;
     }
 
@@ -98,41 +99,61 @@ const AuthPage = ({ children }) => {
         const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: inputEmail, password: inputPassword }),
+            body: JSON.stringify({email: inputEmail, password: inputPassword, username: inputUsername }),
         });
 
         if (response.ok) {
-            const signInSuccess = await handleSignInInternal(inputEmail, inputPassword); 
+            const signInSuccess = await handleSignInInternal(inputEmail, inputPassword, inputUsername); 
             if (signInSuccess) {
                 setMessage('Account created successfully! You are now logged in.');
                 setInputEmail('');
                 setInputPassword('');
+                setInputUsername('');
                 navigate('/'); 
             } else {
                 setAuthError('Account created, but automatic login failed. Please sign in manually.');
             }
         } else {
-            const errorData = await response.json();
-            setAuthError(errorData.detail || 'Sign up failed.');
+    const errorData = await response.json();
+    console.error("DEBUG: Backend error details:", errorData); // Log the full error data
+
+    let errorMessage = 'An unknown error occurred.';
+    if (errorData.detail) {
+        if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail; // For simple string errors
+        } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+            // For FastAPI's 422 validation errors
+            errorMessage = errorData.detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
+        } else {
+            // Fallback if detail is an object but not an array
+            errorMessage = JSON.stringify(errorData.detail);
         }
+    } else if (errorData.message) { // Sometimes other APIs might use 'message'
+        errorMessage = errorData.message;
+    }
+
+    setAuthError(errorMessage || 'Sign up failed.'); // Set the extracted string message
+}
+
     } catch (error) {
         console.error('Sign up network error:', error);
         setAuthError('Network error. Please try again.');
     }
   };
 
-  const handleSignInInternal = async (signInEmail, signInPassword) => { 
+  const handleSignInInternal = async (signInEmail, signInPassword, signInUsername) => { 
     setAuthError('');
     setMessage('');
-    if (!signInEmail || !signInPassword) {
-      setAuthError('Please enter both email and password.');
+    if (!signInEmail || !signInPassword || !signInUsername) {
+      setAuthError('Please enter email, username, and password.');
       return false; 
     }
 
     try {
         const details = new URLSearchParams();
-        details.append('username', signInEmail); 
+        details.append('email', signInEmail); 
         details.append('password', signInPassword);
+        //details.append('username', signInUsername);
 
         const response = await fetch(`${API_BASE_URL}/token`, { 
             method: 'POST',
@@ -146,11 +167,12 @@ const AuthPage = ({ children }) => {
             setMessage('Logged in successfully!');
             setInputEmail('');
             setInputPassword('');
+            setInputUsername('');
             navigate('/'); 
             return true; 
         } else {
             const errorData = await response.json();
-            setAuthError(errorData.detail || 'Invalid email or password.');
+            setAuthError(errorData.detail || 'Invalid email, username, or password.');
             return false; 
         }
     } catch (error) {
@@ -161,7 +183,7 @@ const AuthPage = ({ children }) => {
   };
 
   const handleSignIn = async () => {
-    await handleSignInInternal(inputEmail, inputPassword);
+    await handleSignInInternal(inputEmail, inputPassword, inputUsername);
   };
 
   const handleSignOut = useCallback(async () => { 
@@ -224,19 +246,34 @@ const AuthPage = ({ children }) => {
                 </label>
                 <input
                   type="email" 
-                  id="email"
+                  id="user_email"
                   value={inputEmail} 
                   onChange={(e) => setInputEmail(e.target.value)} 
                   className="auth-input"
                   placeholder="your.email@example.com"
                 />
               </div>
+
+              <div className="auth-input-group">
+                <label htmlFor="username" className="auth-label">
+                  Username:
+                </label>
+                <input
+                type="username"
+                id="username"
+                value={inputUsername}
+                onChange={(e) => setInputUsername(e.target.value)}
+                className="auth-input"
+                placeholder="username"
+                />
+              </div>
+
               <div className="auth-input-group">
                 <label htmlFor="password" className="auth-label">
                   Password:
                 </label>
                 <input
-                  type="password"
+                  type="user_password"
                   id="password"
                   value={inputPassword} 
                   onChange={(e) => setInputPassword(e.target.value)} 
