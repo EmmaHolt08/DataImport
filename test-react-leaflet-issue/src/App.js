@@ -6,21 +6,10 @@ import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
 import AuthPage, { AuthContext } from './AuthPage.js'; 
 
-//PROBLEMS (not crashing/no errors though, just logic/execution)
-// when sign up or sign in, userid isnt being displayed in report form
-// when reload, the page logs you out? (i had this issue before and i cannot remember how i fixed it)
-// there is a front end warning but i dont think i care about it
-
-//COMPLETED MONDAY (because i forgot where i left off friday)
-// linked sing up to user db
-// fixed a ton of errors with that (mostly i can't name correctly)
-// remembered to push it up
-
-//TO DO
-// fix problems
-// test the lower() functionality
-// hash password (probably includes removing the test123 user)
-
+//COMPLETED
+// password hashed (maybe)
+// fixed nav bar and report page
+// fixed the reloading issue i dont know how 
 
 export default function App() {
   return (

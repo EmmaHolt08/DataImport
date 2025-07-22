@@ -87,3 +87,5 @@ use command npm install to install node modules for react
 npm start
 
 npm install react-router-dom 
+
+pip3 install bcrypy (in the virtual environment)

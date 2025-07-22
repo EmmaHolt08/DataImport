@@ -43,6 +43,7 @@ const AuthPage = ({ children }) => {
   const fetchUserFromToken = useCallback(async (authToken) => {
       if (!authToken) {
           applyAuthData(null); 
+          setIsLoadingAuth(false);
           return;
       }
 
@@ -54,16 +55,17 @@ const AuthPage = ({ children }) => {
                   'Content-Type': 'application/json',
               },
           });
-
-          if (response.ok) {
-              const data = await response.json(); 
-              if (data && typeof data.user_id === 'string' && typeof data.email === 'string') {
-                  applyAuthData(authToken, { user_id: data.user_id, email: data.email, username: data.username }); 
-              } else {
-                  console.error("DEBUG: /users/me response missing expected 'id' or 'email' or wrong type:", data);
-                  applyAuthData(null); 
-              }
-          } else {
+          //I dont think this is nesssacery 
+           if (response.ok) {
+                const data = await response.json();
+                if (data && typeof data.user_id === 'string' && typeof data.user_email === 'string') {
+                    applyAuthData(authToken, { user_id: data.user_id, email: data.user_email, username: data.username });
+                } else {
+                    console.error("DEBUG: /users/me response missing expected 'user_id' or 'user_email' or wrong type:", data);
+                    applyAuthData(null);
+                }
+            }
+            else {
               const errorData = await response.json();
               console.error("DEBUG: /users/me fetch failed. Status:", response.status, "Details:", errorData);
               applyAuthData(null); 
@@ -87,7 +89,48 @@ const AuthPage = ({ children }) => {
   }, [fetchUserFromToken]); 
 
 
-  const handleSignUp = async () => { 
+  const handleSignInInternal = useCallback(async (signInEmail, signInPassword, signInUsername) => {
+    setAuthError('');
+    setMessage('');
+    if ((!signInEmail || !signInUsername)|| !signInPassword) {
+      setAuthError('Please enter email (or username) and password.');
+      return false;
+    }
+
+    try {
+        const details = new URLSearchParams();
+        details.append('email', signInEmail);
+        details.append('password', signInPassword);
+
+        const response = await fetch(`${API_BASE_URL}/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: details.toString(),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            applyAuthData(data.access_token, { user_id: data.user_id, user_email: data.user_email, username: data.username });
+            setMessage('Logged in successfully!');
+            setInputEmail('');
+            setInputPassword('');
+            setInputUsername(''); 
+            navigate('/');
+            return true;
+        } else {
+            const errorData = await response.json();
+            setAuthError(errorData.detail || 'Invalid email or password.'); 
+            return false;
+        }
+    } catch (error) {
+        console.error('Sign in network error:', error);
+        setAuthError('Network error. Please try again.');
+        return false;
+    }
+  }, [API_BASE_URL, applyAuthData, navigate]); 
+
+
+  const handleSignUp = useCallback(async () => {
     setAuthError('');
     setMessage('');
     if (!inputEmail || !inputPassword || !inputUsername) {
@@ -99,92 +142,45 @@ const AuthPage = ({ children }) => {
         const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({email: inputEmail, password: inputPassword, username: inputUsername }),
+            body: JSON.stringify({username: inputUsername, email: inputEmail, password: inputPassword }),
         });
 
         if (response.ok) {
             const signInSuccess = await handleSignInInternal(inputEmail, inputPassword, inputUsername); 
             if (signInSuccess) {
                 setMessage('Account created successfully! You are now logged in.');
-                setInputEmail('');
-                setInputPassword('');
-                setInputUsername('');
-                setUser_id('');
-                navigate('/'); 
             } else {
                 setAuthError('Account created, but automatic login failed. Please sign in manually.');
             }
         } else {
-    const errorData = await response.json();
-    console.error("DEBUG: Backend error details:", errorData); // Log the full error data
+            const errorData = await response.json();
+            console.error("DEBUG: Backend error details:", errorData);
 
-    let errorMessage = 'An unknown error occurred.';
-    if (errorData.detail) {
-        if (typeof errorData.detail === 'string') {
-            errorMessage = errorData.detail; // For simple string errors
-        } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
-            // 422 errors
-            errorMessage = errorData.detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
-        } else {
-            // Fallback 
-            errorMessage = JSON.stringify(errorData.detail);
+            let errorMessage = 'An unknown error occurred.';
+            if (errorData.detail) {
+                if (typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+                    errorMessage = errorData.detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
+                } else {
+                    errorMessage = JSON.stringify(errorData.detail);
+                }
+            } else if (errorData.message) {
+                errorMessage = errorData.message;
+            }
+
+            setAuthError(errorMessage || 'Sign up failed.');
         }
-    } else if (errorData.message) { 
-        errorMessage = errorData.message;
-    }
-
-    setAuthError(errorMessage || 'Sign up failed.'); 
-}
 
     } catch (error) {
         console.error('Sign up network error:', error);
         setAuthError('Network error. Please try again.');
     }
-  };
+  }, [inputEmail, inputPassword, inputUsername, API_BASE_URL, handleSignInInternal, setAuthError, setMessage]); 
 
-  const handleSignInInternal = async (signInEmail, signInPassword, signInUsername) => { 
-    setAuthError('');
-    setMessage('');
-    if (!signInEmail || !signInPassword || !signInUsername) {
-      setAuthError('Please enter email, username, and password.');
-      return false; 
-    }
-
-    try {
-        const details = new URLSearchParams();
-        details.append('email', signInEmail); 
-        details.append('password', signInPassword);
-
-        const response = await fetch(`${API_BASE_URL}/token`, { 
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: details.toString(),
-        });
-
-        if (response.ok) {
-            const data = await response.json(); 
-            applyAuthData(data.access_token, { id: data.user_id, email: data.email, username: data.username });
-            setMessage('Logged in successfully!');
-            setInputEmail('');
-            setInputPassword('');
-            setInputUsername('');
-            navigate('/'); 
-            return true; 
-        } else {
-            const errorData = await response.json();
-            setAuthError(errorData.detail || 'Invalid email, username, or password.');
-            return false; 
-        }
-    } catch (error) {
-        console.error('Sign in network error:', error);
-        setAuthError('Network error. Please try again.');
-        return false; 
-    }
-  };
-
-  const handleSignIn = async () => {
-    await handleSignInInternal(inputEmail, inputPassword, inputUsername);
-  };
+  const handleSignIn = useCallback(async () => {
+    await handleSignInInternal(inputEmail, inputPassword, inputUsername); 
+  }, [inputEmail, inputPassword, inputUsername, handleSignInInternal]); 
 
   const handleSignOut = useCallback(async () => { 
     setAuthError('');
@@ -273,7 +269,7 @@ const AuthPage = ({ children }) => {
                   Password:
                 </label>
                 <input
-                  type="user_password"
+                  type="password"
                   id="password"
                   value={inputPassword} 
                   onChange={(e) => setInputPassword(e.target.value)} 

@@ -13,33 +13,32 @@ from app.database import engine, Base, get_db
 from app.models import DataImport, UserInfo
 from app import router
 
+import bcrypt
 
 Base.metadata.create_all(bind=engine)
 
 async def get_current_user(
-   
     authorization: str = Header(...), 
     db: Session = Depends(get_db) 
 ):
-  
-    # if not authorization.startswith("Bearer "):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Invalid authentication scheme. Must be Bearer token.",
-    #         headers={"WWW-Authenticate": "Bearer"},
-    #     )
-
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication scheme. Must be Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+     
     token = authorization.split(" ")[1]
 
-    user = db.query(UserInfo).filter(UserInfo.id == token).first()
+    user = db.query(UserInfo).filter(UserInfo.user_id == token).first()
 
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token (or user not found)",
-            headers={"WWW-Authenticate"},
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return user # Return the User ORM object
+    return user 
 
 app = FastAPI()
 
@@ -62,6 +61,18 @@ app.add_middleware(
     allow_headers=["*"],          
 )
 
+class Hasher:
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+       return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('latin-1'))
+        #return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))    
+    
+    @staticmethod
+    def get_password_hash(password: str) -> str:
+        s = bcrypt.gensalt()
+        hashed_password_bytes = bcrypt.hashpw(password.encode('utf-8'), s)
+        return hashed_password_bytes.decode('latin-1')
+
 app.include_router(router.router)
 
 @app.get('/')
@@ -73,12 +84,12 @@ def home():
 class UserCreate(BaseModel):
     username: str
     email: str 
-    password: str
+    password: str #password as the original string for now
 
 class UserResponse(BaseModel):
-    user_id: str = Field(alias='user_id')
+    user_id: str
     username: str
-    email: str = Field(alias='user_email')
+    email: str  = Field(alias='user_email')
 
     model_config = {'from_attributes': True}
 
@@ -87,8 +98,7 @@ class Token(BaseModel):
     token_type: str
     user_id: str
     username: str
-    user_email: str
-
+    email: str
 
 class DataImportCreate(BaseModel):
     landslideID: str
@@ -116,7 +126,6 @@ class DataImportResponse(BaseModel):
 
     model_config = {'from_attributes': True}
 
-
 @app.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(UserInfo).filter(UserInfo.user_email == user.email).first()
@@ -126,7 +135,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     lowercaseUsername = user.username.lower()
-    db_user2 = db.query(UserInfo).filter(UserInfo.username == user.username).first()
+    db_user2 = db.query(UserInfo).filter(UserInfo.username == lowercaseUsername).first()
     if db_user2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -134,7 +143,9 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         )
     
     new_user_id = str(uuid.uuid4()) 
-    db_user = UserInfo(user_id=new_user_id, username=user.username, user_email=user.email, user_password=user.password) 
+
+    hashed_password_string = Hasher.get_password_hash(user.password)
+    db_user = UserInfo(user_id=new_user_id, username=user.username, user_email=user.email, user_password=hashed_password_string) 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -146,12 +157,7 @@ async def read_users_me(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return {
-        "id": current_user.user_id,
-        "username": current_user.username,
-        "email": current_user.user_email,
-       # "password": current_user.user_password,
-    }
+    return current_user
 
 
 @app.post("/token", response_model=Token)
@@ -162,10 +168,27 @@ async def login_for_access_token(
     db: Session = Depends(get_db)
 ):
     user = db.query(UserInfo).filter(UserInfo.user_email == email).first()
-    if not user or user.user_password != password:
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    print(f"DEBUG: User found. Email: {user.user_email}")
+    print(f"DEBUG: Stored password hash (from DB): '{user.user_password}'")
+    print(f"DEBUG: Type of stored password hash: {type(user.user_password)}")
+    if not user.user_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User has no password set.", # Or a more generic message
+            headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    if not Hasher.verify_password(password, user.user_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password", 
             headers={"WWW-Authenticate": "Bearer"},
         )
     return {
@@ -173,7 +196,7 @@ async def login_for_access_token(
         "token_type": "bearer",
         "user_id": user.user_id, 
         "username": user.username,
-        "user_email": user.user_email,
+        "email": user.user_email,
        # "password": user.user_password
     }
 
