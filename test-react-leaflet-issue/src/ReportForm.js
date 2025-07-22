@@ -32,17 +32,17 @@ export default function ReportForm() {
     const [wea13id, setWea13id] = useState(''); 
     const [wea13type, setWea13type] = useState('');
 
-   // const [userID, setUserID] = useState('');
-
     const [status, setStatus] = useState('idle'); 
     const [error, setError] = useState(null);
     const [formMessage, setFormMessage] = useState('');
 
     const [markerPosition, setMarkerPosition] = useState(null);
 
-    const {userId} = useContext(AuthContext);
+    const {user_id} = useContext(AuthContext);
 
     const mapRef = useRef(null);
+
+    const [currentUserId, setCurrentUserid] = useState('');
 
     // gets max lsID from database and addds one to the assigned for new data
     useEffect(() => {
@@ -69,6 +69,28 @@ export default function ReportForm() {
             }
         };
 
+        const fetchUserId = async () => {
+            setStatus('getting userID');
+            setError(null);
+            try{
+                const response = await fetch('http://127.0.0.1:8000/user/me/');
+                if (!response.ok) {
+                    throw new Error('HTTP error (userid version)');
+                }
+                const data = await response.json();
+
+                setCurrentUserid(String(user_id))
+                setStatus ('idle');
+                console.log("UserID from db works")
+
+            }
+
+            catch (err) {
+                console.error("failed to get user id :(", err);
+                setError(new Error('Failed to get user id'))
+                setStatus('error')
+            }
+        }
         fetchMaxIDs();
     }, []); 
 
@@ -113,7 +135,7 @@ export default function ReportForm() {
                     impact: impact,
                     wea13id: wea13id === 'None' ? null : wea13type, 
                     wea13type: wea13type === 'None' ? null : wea13type,
-                    user_id: userId,
+                    user_id: user_id,
                 }),
             });
 
@@ -163,11 +185,11 @@ export default function ReportForm() {
 
             <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label htmlFor="userID">User ID:</label>
+                    <label htmlFor="user_id">User ID:</label>
                     <input
-                        id="userID"
+                        id="user_id"
                         type="text"
-                        value={userId}
+                        value={user_id}
                         readOnly
                         isabled={status === 'submitting' || status === 'generating_ids'}
                     />

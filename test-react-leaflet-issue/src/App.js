@@ -8,8 +8,7 @@ import AuthPage, { AuthContext } from './AuthPage.js';
 
 //PROBLEMS (not crashing/no errors though, just logic/execution)
 // when sign up or sign in, userid isnt being displayed in report form
-// username isnt being displayed on nav bar
-// when reload, the page logs you out
+// when reload, the page logs you out? (i had this issue before and i cannot remember how i fixed it)
 // there is a front end warning but i dont think i care about it
 
 //COMPLETED MONDAY (because i forgot where i left off friday)
@@ -19,6 +18,7 @@ import AuthPage, { AuthContext } from './AuthPage.js';
 
 //TO DO
 // fix problems
+// test the lower() functionality
 // hash password (probably includes removing the test123 user)
 
 
@@ -33,7 +33,7 @@ export default function App() {
 }
 
 const AppContent = () => {
-  const { user, token, handleSignOut, isLoadingAuth } = useContext(AuthContext); 
+  const { user, handleSignOut, isLoadingAuth } = useContext(AuthContext); 
 
   const isAuthenticated = !!user; 
 
@@ -70,7 +70,7 @@ const AppContent = () => {
           {user ? ( 
             <>
               <li className="nav-item nav-text">
-                Logged in as: {user.email} 
+                Logged in as: {user.username} 
               </li>
               <li className="nav-item">
                 <button onClick={handleSignOut} className="nav-button">Logout</button>

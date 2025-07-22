@@ -7,7 +7,7 @@ export const AuthContext = createContext(null);
 
 const AuthPage = ({ children }) => {
   const [user, setUser] = useState(null); 
-  const [userId, setUserId] = useState(null);
+  const [user_id, setUser_id] = useState(null);
   const [token, setToken] = useState(null); 
 
   const [isLoadingAuth, setIsLoadingAuth] = useState(true); 
@@ -30,13 +30,13 @@ const AuthPage = ({ children }) => {
       if (authToken && userData) {
           localStorage.setItem(LOCAL_STORAGE_AUTH_TOKEN_KEY, authToken);
           setToken(authToken);
-          setUser({ email: userData.email, uid: userData.user_id, username: userData.username });
-          setUserId(userData.user_id);
+          setUser({ email: userData.email, user_id: userData.user_id, username: userData.username });
+          setUser_id(userData.user_id);
       } else {
           localStorage.removeItem(LOCAL_STORAGE_AUTH_TOKEN_KEY);
           setToken(null);
           setUser(null);
-          setUserId(null); 
+          setUser_id(null); 
       }
   }, []); 
 
@@ -109,6 +109,7 @@ const AuthPage = ({ children }) => {
                 setInputEmail('');
                 setInputPassword('');
                 setInputUsername('');
+                setUser_id('');
                 navigate('/'); 
             } else {
                 setAuthError('Account created, but automatic login failed. Please sign in manually.');
@@ -122,17 +123,17 @@ const AuthPage = ({ children }) => {
         if (typeof errorData.detail === 'string') {
             errorMessage = errorData.detail; // For simple string errors
         } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
-            // For FastAPI's 422 validation errors
+            // 422 errors
             errorMessage = errorData.detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
         } else {
-            // Fallback if detail is an object but not an array
+            // Fallback 
             errorMessage = JSON.stringify(errorData.detail);
         }
-    } else if (errorData.message) { // Sometimes other APIs might use 'message'
+    } else if (errorData.message) { 
         errorMessage = errorData.message;
     }
 
-    setAuthError(errorMessage || 'Sign up failed.'); // Set the extracted string message
+    setAuthError(errorMessage || 'Sign up failed.'); 
 }
 
     } catch (error) {
@@ -153,7 +154,6 @@ const AuthPage = ({ children }) => {
         const details = new URLSearchParams();
         details.append('email', signInEmail); 
         details.append('password', signInPassword);
-        //details.append('username', signInUsername);
 
         const response = await fetch(`${API_BASE_URL}/token`, { 
             method: 'POST',
@@ -163,7 +163,7 @@ const AuthPage = ({ children }) => {
 
         if (response.ok) {
             const data = await response.json(); 
-            applyAuthData(data.access_token, { id: data.user_id, email: data.email });
+            applyAuthData(data.access_token, { id: data.user_id, email: data.email, username: data.username });
             setMessage('Logged in successfully!');
             setInputEmail('');
             setInputPassword('');
@@ -195,7 +195,7 @@ const AuthPage = ({ children }) => {
 
   const authContextValue = useMemo(() => ({
     user,
-    userId, 
+    user_id, 
     token,  
     isLoadingAuth, 
     authError,
@@ -203,7 +203,7 @@ const AuthPage = ({ children }) => {
     handleSignIn,
     handleSignUp,
     handleSignOut,
-  }), [user, userId, token, isLoadingAuth, authError, message, handleSignIn, handleSignUp, handleSignOut]);
+  }), [user, user_id, token, isLoadingAuth, authError, message, handleSignIn, handleSignUp, handleSignOut]);
 
 
   if (isLoadingAuth) {
@@ -313,271 +313,3 @@ const AuthPage = ({ children }) => {
 export default AuthPage;
 
 
-// //Old auth page
-// // import React, { useState, useEffect, createContext } from 'react';
-
-// // //NOTES: change from local storage to db storage
-// // //report form is accessing userID sucessfully  but is not reporting it to the backend
-// // // "Error: [object Object]"
-
-// // // Define keys for localStorage.
-// // const LOCAL_STORAGE_USER_KEY = 'landslide_app_user';
-// // const LOCAL_STORAGE_EXPLICIT_LOGIN_KEY = 'landslide_app_explicit_login';
-// // const LOCAL_STORAGE_REGISTERED_USERS_KEY = 'landslide_app_registered_users';
-
-// // const LOCAL_STORAGE_AUTH_TOKEN_KEY = 'landlside_app_auth_token';
-// // export const AuthContext = createContext(null);
-
-// // const AuthPage = ({ children }) => {
-// //  // const [user, setUser] = useState(null);
-// //   const [userID, setUserID] = useState(null);
-// //  // const [isExplicitlyLoggedIn, setIsExplicitlyLoggedIn] = useState(false);
-
-// //   const [email, setEmail] = useState('');
-// //   const [password, setPassword] = useState('');
-// //   const [authError, setAuthError] = useState('');
-// //   const [authReady, setAuthReady] = useState(false);
-// //   const [message, setMessage] = useState('');
-
-// //   const [user, setUser] = useState(() => {
-// //     try {
-// //       const storedUser = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-// //       return storedUser ? JSON.parse(storedUser) : null;
-// //     } catch (error) {
-// //       return null;
-// //     }
-// //   });
-
-// //   const [userId, setUserId] = useState(() => user ? user.uid : null);
-
-// //   const [isExplicitlyLoggedIn, setIsExplicitlyLoggedIn] = useState(() => {
-// //     try {
-// //       const storedLoginStatus = localStorage.getItem(LOCAL_STORAGE_EXPLICIT_LOGIN_KEY);
-// //       return storedLoginStatus === 'true';
-// //     } catch (error) {
-// //       return false;
-// //     }
-// //   });
-
-// //   const [registeredUsers, setRegisteredUsers] = useState(() => {
-// //     try {
-// //       const storedRegisteredUsers = localStorage.getItem(LOCAL_STORAGE_REGISTERED_USERS_KEY);
-// //       return storedRegisteredUsers ? JSON.parse(storedRegisteredUsers) : {};
-// //     } catch (error) {
-// //       return {};
-// //     }
-// //   });
-
-// //   // const [email, setEmail] = useState('');
-// //   // const [password, setPassword] = useState('');
-// //   // const [authError, setAuthError] = useState('');
-// //   // const [authReady, setAuthReady] = useState(false);
-// //   // const [message, setMessage] = useState('');
-
-// //   useEffect(() => {
-// //     setAuthReady(true);
-// //     if (isExplicitlyLoggedIn && user) {
-// //       setMessage(`Welcome back, ${user.email}!`);
-// //     } else {
-// //       setMessage('Please log in or sign up to access the application.');
-// //     }
-// //   }, []);
-
-// //   // useEffect(() => {
-// //   //   if (user) {
-// //   //     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
-// //   //   } else {
-// //   //     localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
-// //   //   }
-// //   //   localStorage.setItem(LOCAL_STORAGE_EXPLICIT_LOGIN_KEY, String(isExplicitlyLoggedIn));
-// //   // }, [user, isExplicitlyLoggedIn]);
-
-// //   // useEffect(() => {
-// //   //   localStorage.setItem(LOCAL_STORAGE_REGISTERED_USERS_KEY, JSON.stringify(registeredUsers));
-// //   // }, [registeredUsers]);
-
-
-// //   const handleSignUp = async () => {
-// //     setAuthError('');
-// //     setMessage('');
-// //     if (!authReady) {
-// //       setAuthError('Authentication not ready. Please wait.');
-// //       return;
-// //     }
-// //     if (!email || !password) {
-// //       setAuthError('Please enter both email and password.');
-// //       return;
-// //     }
-
-// //     if (registeredUsers[email]) {
-// //       setAuthError('An account with this email already exists. Please sign in.');
-// //       return;
-// //     }
-
-// //     const newUid = `${btoa(email).slice(0, 10)}`; //random 10 char string
-// //     const newUserProfile = { email: email, uid: newUid };
-
-// //     setRegisteredUsers(prev => ({
-// //       ...prev,
-// //       [email]: { password: password, uid: newUid }
-// //     }));
-
-// //     setUser(newUserProfile);
-// //     setUserId(newUid);
-// //     setIsExplicitlyLoggedIn(true);
-// //     setMessage('Account created successfully! You are now logged in.');
-// //   };
-
-// //   const handleSignIn = async () => {
-// //     setAuthError('');
-// //     setMessage('');
-// //     if (!authReady) {
-// //       setAuthError('Authentication not ready. Please wait.');
-// //       return;
-// //     }
-// //     if (!email || !password) {
-// //       setAuthError('Please enter both email and password.');
-// //       return;
-// //     }
-
-// //     const storedUser = registeredUsers[email];
-
-// //     if (!storedUser) {
-// //       setAuthError('No account found with this email/password. Please sign up.');
-// //       setIsExplicitlyLoggedIn(false);
-// //       return;
-// //     }
-
-// //     if (storedUser.password === password) {
-// //       const loggedInUser = { email: email, uid: storedUser.uid };
-// //       setUser(loggedInUser);
-// //       setUserID(loggedInUser.uid);
-// //       setIsExplicitlyLoggedIn(true);
-// //       setMessage('Logged in successfully!');
-// //     } else {
-// //       setAuthError('Invalid email or password.');
-// //       setIsExplicitlyLoggedIn(false);
-// //     }
-// //   };
-
-// //   const handleSignOut = async () => {
-// //     setAuthError('');
-// //     setMessage('');
-// //     if (!authReady) {
-// //       setAuthError('Authentication not ready. Please wait.');
-// //       return;
-// //     }
-// //     setUser(null);
-// //     setUserId(null);
-// //     setIsExplicitlyLoggedIn(false);
-// //     setMessage('Logged out successfully.');
-
-// //     localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
-// //     localStorage.removeItem(LOCAL_STORAGE_EXPLICIT_LOGIN_KEY);
-// //   };
-
-// //   const authContextValue = {
-// //     user,
-// //     userId,
-// //     authReady,
-// //     isExplicitlyLoggedIn,
-// //     authError,
-// //     message,
-// //     handleSignIn,
-// //     handleSignUp,
-// //     handleSignOut,
-// //     setEmail,
-// //     setPassword,
-// //     email,
-// //     password,
-// //   };
-
-// //   if (!authReady) {
-// //     return (
-// //       <div className="auth-loading-container">
-// //         <div className="auth-loading-box">
-// //           <p className="auth-loading-text">Loading authentication...</p>
-// //         </div>
-// //       </div>
-// //     );
-// //   }
-
-// //   if (!isExplicitlyLoggedIn) {
-// //     return (
-// //       <AuthContext.Provider value={authContextValue}>
-// //         <div className="auth-page-container">
-// //           <div className="auth-form-card">
-// //             <h2 className="auth-form-title">
-// //               Landslide Report Login
-// //             </h2>
-
-// //             {authError && (
-// //               <div className="auth-error-message" role="alert">
-// //                 <strong className="auth-message-strong">Error:</strong>
-// //                 <span className="auth-message-span">{authError}</span>
-// //               </div>
-// //             )}
-
-// //             {message && (
-// //               <div className="auth-info-message" role="alert">
-// //                 <strong className="auth-message-strong">Info:</strong>
-// //                 <span className="auth-message-span">{message}</span>
-// //               </div>
-// //             )}
-
-// //             <div>
-// //               <div className="auth-input-group">
-// //                 <label htmlFor="email" className="auth-label">
-// //                   Email:
-// //                 </label>
-// //                 <input
-// //                   type="email"
-// //                   id="email"
-// //                   value={email}
-// //                   onChange={(e) => setEmail(e.target.value)}
-// //                   className="auth-input"
-// //                   placeholder="your.email@example.com"
-// //                 />
-// //               </div>
-// //               <div className="auth-input-group">
-// //                 <label htmlFor="password" className="auth-label">
-// //                   Password:
-// //                 </label>
-// //                 <input
-// //                   type="password"
-// //                   id="password"
-// //                   value={password}
-// //                   onChange={(e) => setPassword(e.target.value)}
-// //                   className="auth-input"
-// //                   placeholder="••••••••"
-// //                 />
-// //               </div>
-// //               <div className="auth-button-group">
-// //                 <button
-// //                   onClick={handleSignIn}
-// //                   className="auth-button auth-button-primary"
-// //                 >
-// //                   Sign In
-// //                 </button>
-// //                 <button
-// //                   onClick={handleSignUp}
-// //                   className="auth-button auth-button-secondary"
-// //                 >
-// //                   Sign Up
-// //                 </button>
-// //               </div>
-// //             </div>
-// //           </div>
-// //         </div>
-// //       </AuthContext.Provider>
-// //     );
-// //   }
-
-// //   return (
-// //     <AuthContext.Provider value={authContextValue}>
-// //       {children}
-// //     </AuthContext.Provider>
-// //   );
-// // };
-
-// // export default AuthPage;
