@@ -19,6 +19,9 @@ const AuthPage = ({ children }) => {
   const [inputPassword, setInputPassword] = useState('');
   const [inputUsername, setInputUsername] = useState('');
 
+    const [showUsernameInput, setShowUsernameInput] = useState(false); // New state to control username input visibility
+
+
   const API_BASE_URL = 'http://127.0.0.1:8000'; 
 
   const navigate = useNavigate();
@@ -88,19 +91,14 @@ const AuthPage = ({ children }) => {
     }
   }, [fetchUserFromToken]); 
 
-
-  const handleSignInInternal = useCallback(async (signInEmail, signInPassword, signInUsername) => {
+    const handleSignInInternal = useCallback(async (email, password) => {
     setAuthError('');
     setMessage('');
-    if ((!signInEmail || !signInUsername)|| !signInPassword) {
-      setAuthError('Please enter email (or username) and password.');
-      return false;
-    }
 
     try {
         const details = new URLSearchParams();
-        details.append('email', signInEmail);
-        details.append('password', signInPassword);
+        details.append('email', email);
+        details.append('password', password);
 
         const response = await fetch(`${API_BASE_URL}/token`, {
             method: 'POST',
@@ -110,16 +108,17 @@ const AuthPage = ({ children }) => {
 
         if (response.ok) {
             const data = await response.json();
-            applyAuthData(data.access_token, { user_id: data.user_id, user_email: data.user_email, username: data.username });
+            applyAuthData(data.access_token, { user_id: data.user_id, email: data.user_email, username: data.username });
             setMessage('Logged in successfully!');
             setInputEmail('');
             setInputPassword('');
             setInputUsername(''); 
-            navigate('/');
+            setShowUsernameInput(false); 
+            navigate('/'); 
             return true;
         } else {
             const errorData = await response.json();
-            setAuthError(errorData.detail || 'Invalid email or password.'); 
+            setAuthError(errorData.detail || 'Invalid email or password.');
             return false;
         }
     } catch (error) {
@@ -127,14 +126,21 @@ const AuthPage = ({ children }) => {
         setAuthError('Network error. Please try again.');
         return false;
     }
-  }, [API_BASE_URL, applyAuthData, navigate]); 
+  }, [API_BASE_URL, applyAuthData, navigate]);
 
 
-  const handleSignUp = useCallback(async () => {
+const handleSignUp = useCallback(async () => {
     setAuthError('');
     setMessage('');
+    setShowUsernameInput(true); 
+
+    if(!inputUsername) {
+      setAuthError('Please choose username');
+      return;
+    }
+ 
     if (!inputEmail || !inputPassword || !inputUsername) {
-      setAuthError('Please enter email, username, and password.');
+      setAuthError('Please enter email, username, and password to sign up.');
       return;
     }
 
@@ -146,7 +152,7 @@ const AuthPage = ({ children }) => {
         });
 
         if (response.ok) {
-            const signInSuccess = await handleSignInInternal(inputEmail, inputPassword, inputUsername); 
+            const signInSuccess = await handleSignInInternal(inputEmail, inputPassword);
             if (signInSuccess) {
                 setMessage('Account created successfully! You are now logged in.');
             } else {
@@ -176,11 +182,18 @@ const AuthPage = ({ children }) => {
         console.error('Sign up network error:', error);
         setAuthError('Network error. Please try again.');
     }
-  }, [inputEmail, inputPassword, inputUsername, API_BASE_URL, handleSignInInternal, setAuthError, setMessage]); 
+  }, [inputEmail, inputPassword, inputUsername, API_BASE_URL, handleSignInInternal, setAuthError, setMessage]);
 
   const handleSignIn = useCallback(async () => {
-    await handleSignInInternal(inputEmail, inputPassword, inputUsername); 
-  }, [inputEmail, inputPassword, inputUsername, handleSignInInternal]); 
+    setAuthError('');
+    setMessage('');
+    if (!inputEmail || !inputPassword) {
+        setAuthError('Please enter your email and password to sign in.');
+        return;
+    }
+    await handleSignInInternal(inputEmail, inputPassword);
+  }, [inputEmail, inputPassword, handleSignInInternal, setAuthError, setMessage]);
+ 
 
   const handleSignOut = useCallback(async () => { 
     setAuthError('');
@@ -250,19 +263,21 @@ const AuthPage = ({ children }) => {
                 />
               </div>
 
-              <div className="auth-input-group">
-                <label htmlFor="username" className="auth-label">
-                  Username:
-                </label>
-                <input
-                type="username"
-                id="username"
-                value={inputUsername}
-                onChange={(e) => setInputUsername(e.target.value)}
-                className="auth-input"
-                placeholder="username"
-                />
-              </div>
+               {showUsernameInput && (
+                <div className="auth-input-group">
+                  <label htmlFor="username" className="auth-label">
+                    Username:
+                  </label>
+                  <input
+                  type="text"
+                  id="username"
+                  value={inputUsername}
+                  onChange={(e) => setInputUsername(e.target.value)}
+                  className="auth-input"
+                  placeholder="username"
+                  />
+                </div>
+              )}
 
               <div className="auth-input-group">
                 <label htmlFor="password" className="auth-label">

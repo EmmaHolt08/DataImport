@@ -6,10 +6,12 @@ import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
 import AuthPage, { AuthContext } from './AuthPage.js'; 
 
-//COMPLETED
-// password hashed (maybe)
+//COMPLETED 
 // fixed nav bar and report page
-// fixed the reloading issue i dont know how 
+// fixed the reloading issue
+// fixed username issue
+// username is now not required to sign in, only sign up
+// the box only pops up after sign up button is hit for the first time
 
 export default function App() {
   return (
