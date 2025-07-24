@@ -3,11 +3,6 @@ import { MapContainer, TileLayer, useMap, GeoJSON} from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-//error on 28 and 70 - not populating points on a map correctly
-//i think it has something to do with the changes in main
-// all the issues have something to do with the changes in main
-//sigh
-
 const center = [38.6263, -96.1751]
 const zoom = 4
 

@@ -5,18 +5,20 @@ import QueryForm from './QueryForm.js';
 import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
 import AuthPage, { AuthContext } from './AuthPage.js'; 
+
 //TO DO
 // comment programs
 // update readme
-// figure out docker again
 
+//COMPLETED TODAY
+// commented main, authpage, and app
+// rebuilt docker, is correct version now
 
-//COMPLETED 
-// fixed nav bar and report page
+//COMPLETED Wednesday
 // fixed the reloading issue
-// fixed username issue
+// fixed username issue (made it so it is case insenstive when checking if it exists already)
 // username is now not required to sign in, only sign up
-// the box only pops up after sign up button is hit for the first time
+//       the box only pops up after sign up button is hit for the first time
 
 // the app is only accessable after user is authorized
 export default function App() {

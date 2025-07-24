@@ -92,7 +92,7 @@ const AuthPage = ({ children }) => {
   }, [fetchUserFromToken]); 
 
     // logs the user in through email and password
-    const handleSignInInternal = useCallback(async (email, password) => {
+  const handleSignInInternal = useCallback(async (email, password) => {
     setAuthError('');
     setMessage('');
 
@@ -123,7 +123,7 @@ const AuthPage = ({ children }) => {
             const errorData = await response.json();
             setAuthError(errorData.detail || 'Invalid email or password.');
             return false;
-        }
+       }
     } catch (error) {
         console.error('Sign in network error:', error);
         setAuthError('Network error. Please try again.');
@@ -131,8 +131,8 @@ const AuthPage = ({ children }) => {
     }
   }, [API_BASE_URL, applyAuthData, navigate]);
 
-// signs the user in
-const handleSignUp = useCallback(async () => {
+  // signs the user in
+  const handleSignUp = useCallback(async () => {
     setAuthError('');
     setMessage('');
     setShowUsernameInput(true); // only shows username input box if the user clicks the sign up button

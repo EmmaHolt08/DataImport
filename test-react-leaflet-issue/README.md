@@ -69,7 +69,7 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 
-
+## for backend
 Have correct version of python interpreter (3.13.5)
 be in correct file (code)
 source .venv/bin/activate
@@ -82,10 +82,18 @@ create a .env file that includes the database url (in root folder)
 go into file w main.py (awesome-project)
 uvicorn main:app --reload
 
+## for frontend
 be in correct directory
 use command npm install to install node modules for react
 npm start
 
+## to connect
 npm install react-router-dom 
 
+## for password hashing
 pip3 install bcrypy (in the virtual environment)
+pip3 install passlib
+
+## docker
+docker compose up --build
+(to take down) docker compose down
