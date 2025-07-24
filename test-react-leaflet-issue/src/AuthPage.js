@@ -19,13 +19,13 @@ const AuthPage = ({ children }) => {
   const [inputPassword, setInputPassword] = useState('');
   const [inputUsername, setInputUsername] = useState('');
 
-    const [showUsernameInput, setShowUsernameInput] = useState(false); // New state to control username input visibility
-
+  const [showUsernameInput, setShowUsernameInput] = useState(false); 
 
   const API_BASE_URL = 'http://127.0.0.1:8000'; 
 
   const navigate = useNavigate();
 
+  //stores token and data to keep user logged in
   const applyAuthData = useCallback((authToken, userData = null) => {
       setAuthError(''); 
       setMessage('');   
@@ -43,6 +43,7 @@ const AuthPage = ({ children }) => {
       }
   }, []); 
 
+  // gets the user id & other info form the db when user is logged in
   const fetchUserFromToken = useCallback(async (authToken) => {
       if (!authToken) {
           applyAuthData(null); 
@@ -58,7 +59,6 @@ const AuthPage = ({ children }) => {
                   'Content-Type': 'application/json',
               },
           });
-          //I dont think this is nesssacery 
            if (response.ok) {
                 const data = await response.json();
                 if (data && typeof data.user_id === 'string' && typeof data.user_email === 'string') {
@@ -91,10 +91,12 @@ const AuthPage = ({ children }) => {
     }
   }, [fetchUserFromToken]); 
 
+    // logs the user in through email and password
     const handleSignInInternal = useCallback(async (email, password) => {
     setAuthError('');
     setMessage('');
 
+    //checks if the user is in the db
     try {
         const details = new URLSearchParams();
         details.append('email', email);
@@ -106,6 +108,7 @@ const AuthPage = ({ children }) => {
             body: details.toString(),
         });
 
+        // if the user is, then they will be logged in
         if (response.ok) {
             const data = await response.json();
             applyAuthData(data.access_token, { user_id: data.user_id, email: data.user_email, username: data.username });
@@ -128,11 +131,11 @@ const AuthPage = ({ children }) => {
     }
   }, [API_BASE_URL, applyAuthData, navigate]);
 
-
+// signs the user in
 const handleSignUp = useCallback(async () => {
     setAuthError('');
     setMessage('');
-    setShowUsernameInput(true); 
+    setShowUsernameInput(true); // only shows username input box if the user clicks the sign up button
 
     if(!inputUsername) {
       setAuthError('Please choose username');
@@ -144,6 +147,7 @@ const handleSignUp = useCallback(async () => {
       return;
     }
 
+    // send the user info to the db (lots of debugging in this)
     try {
         const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
@@ -184,6 +188,7 @@ const handleSignUp = useCallback(async () => {
     }
   }, [inputEmail, inputPassword, inputUsername, API_BASE_URL, handleSignInInternal, setAuthError, setMessage]);
 
+  
   const handleSignIn = useCallback(async () => {
     setAuthError('');
     setMessage('');
@@ -194,7 +199,7 @@ const handleSignUp = useCallback(async () => {
     await handleSignInInternal(inputEmail, inputPassword);
   }, [inputEmail, inputPassword, handleSignInInternal, setAuthError, setMessage]);
  
-
+  // forgets the user's login in info and takes them back to auth page
   const handleSignOut = useCallback(async () => { 
     setAuthError('');
     setMessage('Logged out successfully.');

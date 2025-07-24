@@ -42,7 +42,7 @@ async def get_current_user(
 
 app = FastAPI()
 
-# to give front end accesss to back end
+# to give front end accesss to back end (need to be changed?)
 origins = [
     "http://localhost",
     "http://localhost:3000",
@@ -61,17 +61,17 @@ app.add_middleware(
     allow_headers=["*"],          
 )
 
+#to hash passowrd
 class Hasher:
-    @staticmethod
+    @staticmethod #checks password when user is logging in
     def verify_password(plain_password: str, hashed_password: str) -> bool:
        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('latin-1'))
-        #return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))    
     
-    @staticmethod
+    @staticmethod #hashes password
     def get_password_hash(password: str) -> str:
         s = bcrypt.gensalt()
         hashed_password_bytes = bcrypt.hashpw(password.encode('utf-8'), s)
-        return hashed_password_bytes.decode('latin-1')
+        return hashed_password_bytes.decode('latin-1') #to be stored in db
 
 app.include_router(router.router)
 
@@ -84,7 +84,7 @@ def home():
 class UserCreate(BaseModel):
     username: str
     email: str 
-    password: str #password as the original string for now
+    password: str 
 
 class UserResponse(BaseModel):
     user_id: str
@@ -111,7 +111,7 @@ class DataImportCreate(BaseModel):
     wea13_type: Optional[str] = None
     user_id: Optional[str] = None
 
-# Data model for data you will send in API responses
+# Data model for data that will be sent in API responses
 class DataImportResponse(BaseModel):
     landslideID: str
     latitude: float
@@ -126,14 +126,19 @@ class DataImportResponse(BaseModel):
 
     model_config = {'from_attributes': True}
 
+#for sign up
 @app.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
+
+    #checks db for email
     db_user = db.query(UserInfo).filter(UserInfo.user_email == user.email).first()
     if db_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
+    
+    #checks db for username (case insensitive)
     lowercaseUsername = user.username.lower()
     db_user2 = db.query(UserInfo).filter(UserInfo.username == lowercaseUsername).first()
     if db_user2:
@@ -142,16 +147,20 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             detail="Username taken. Choose a new one"
         )
     
+    #creates user id if checks pass
     new_user_id = str(uuid.uuid4()) 
 
+    #creates the hashed password
     hashed_password_string = Hasher.get_password_hash(user.password)
+
+    #sends user info through to db
     db_user = UserInfo(user_id=new_user_id, username=user.username, user_email=user.email, user_password=hashed_password_string) 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
 
-
+#the user
 @app.get("/users/me", response_model=UserResponse)
 async def read_users_me(
     current_user: UserInfo = Depends(get_current_user),
@@ -159,14 +168,14 @@ async def read_users_me(
 ):
     return current_user
 
-
+#user token
 @app.post("/token", response_model=Token)
 async def login_for_access_token(
     email: str = Form(..., alias="email"),
-   # username: str = Form(...),
     password: str = Form(...),                
     db: Session = Depends(get_db)
 ):
+    #checks email 
     user = db.query(UserInfo).filter(UserInfo.user_email == email).first()
     if not user:
         raise HTTPException(
@@ -174,17 +183,8 @@ async def login_for_access_token(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    print(f"DEBUG: User found. Email: {user.user_email}")
-    print(f"DEBUG: Stored password hash (from DB): '{user.user_password}'")
-    print(f"DEBUG: Type of stored password hash: {type(user.user_password)}")
-    if not user.user_password:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User has no password set.", # Or a more generic message
-            headers={"WWW-Authenticate": "Bearer"},
-    )
 
+    #checks password
     if not Hasher.verify_password(password, user.user_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -197,7 +197,6 @@ async def login_for_access_token(
         "user_id": user.user_id, 
         "username": user.username,
         "email": user.user_email,
-       # "password": user.user_password
     }
 
 #report form

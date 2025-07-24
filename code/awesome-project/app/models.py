@@ -31,7 +31,6 @@ class DataImport(Base):
     user_id = Column(String, nullable = True)
 
 
-    # A helpful representation for debugging and printing Product objects
     def __repr__(self):
         return (f"<DataImport(landslideid={self.landslideid}, latitude={self.latitude}, longitude={self.longitude},"
                 f"lstype={self.lstype}, lssource={self.lssource}, impact={self.impact}, wea13_id={self.wea13_id},"
@@ -49,8 +48,6 @@ class UserInfo (Base):
     user_email = Column (String)
 
     user_password = Column (String)
-
-    #eventually i will have a hashed password there too
 
     def __repr__(self):
         return (f"<UserInfo(user_id={self.user_id}, username={self.username}, user_email={self.user_email}, user_password={self.user_password}),>")

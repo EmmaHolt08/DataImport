@@ -5,6 +5,11 @@ import QueryForm from './QueryForm.js';
 import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
 import AuthPage, { AuthContext } from './AuthPage.js'; 
+//TO DO
+// comment programs
+// update readme
+// figure out docker again
+
 
 //COMPLETED 
 // fixed nav bar and report page
@@ -13,6 +18,7 @@ import AuthPage, { AuthContext } from './AuthPage.js';
 // username is now not required to sign in, only sign up
 // the box only pops up after sign up button is hit for the first time
 
+// the app is only accessable after user is authorized
 export default function App() {
   return (
     <Router>
