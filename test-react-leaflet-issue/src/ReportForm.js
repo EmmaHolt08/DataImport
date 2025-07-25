@@ -92,7 +92,7 @@ export default function ReportForm() {
             }
         }
         fetchMaxIDs();
-    }, []); 
+    }, [user_id]); 
 
     // set lat & long from click on map
     function MapClickHandler() {
