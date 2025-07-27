@@ -36,7 +36,7 @@ def load_spatialite_extension_on_connect(dbapi_connection, connection_record):
         loaded = False
         for path in potential_spatialite_paths:
             try:
-                dbapi_connection.load_extension(path)
+                dbapi_connection.load_extension("/usr/lib/x86_64-linux-gnu/mod_spatialite.so")                
                 print(f"Successfully loaded SpatiaLite from: {path}")
                 loaded = True
                 break
