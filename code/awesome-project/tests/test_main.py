@@ -44,7 +44,7 @@ client = TestClient(app)
 
 # --- Actual Tests ---
 
-def test_home_endpoint():
+def test_home_endpoint(db_session):
     """Test the root '/' endpoint."""
     response = client.get("/")
     assert response.status_code == 200
@@ -151,7 +151,7 @@ def test_login_invalid_credentials(db_session):
     assert response.status_code == 401
     assert response.json()["detail"] == "Incorrect email or password"
 
-def test_login_non_existent_email():
+def test_login_non_existent_email(db_session):
     """Test login with non-existent email."""
     login_data = {
         "email": "nonexistent@example.com",
