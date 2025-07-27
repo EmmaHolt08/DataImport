@@ -79,6 +79,32 @@ client = TestClient(app)
 
 # --- Actual Tests ---
 
+def test_db_session_can_add_user(db_session):
+    from app.models import UserInfo # Ensure UserInfo is imported
+    from main import Hasher # Hasher is needed to create password hash
+
+    # Create a user directly in the test database session
+    test_user_id = "test_user_id_123"
+    test_username = "directuser"
+    test_email = "direct@example.com"
+    test_password_hash = Hasher.get_password_hash("directpassword")
+
+    new_user = UserInfo(
+        user_id=test_user_id,
+        username=test_username,
+        user_email=test_email,
+        user_password=test_password_hash
+    )
+    db_session.add(new_user)
+    db_session.commit()
+
+    # Verify it can be retrieved
+    retrieved_user = db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
+    assert retrieved_user is not None
+    assert retrieved_user.username == test_username
+    assert retrieved_user.user_email == test_email
+    print("db_session successfully added and retrieved a user directly.")
+
 def test_home_endpoint(db_session):
     """Test the root '/' endpoint."""
     response = client.get("/")
