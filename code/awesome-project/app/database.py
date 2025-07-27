@@ -24,7 +24,7 @@ def load_spatialite_extension(dbapi_connection, connection_record):
     """
     try:
         dbapi_connection.enable_load_extension(True)
-        dbapi_connection.load_extension("/usr/lib/sqlite3/mod_spatialite.so") 
+        dbapi_connection.load_extension("/usr/lib/x86_64-linux-gnu/mod_spatialite.so") 
         dbapi_connection.enable_load_extension(False) # Disable for security after loading
     except sqlite3.OperationalError as e:
         print(f"Warning: Could not load SpatiaLite extension. This is expected if not using SQLite with spatial functions. Error: {e}")

@@ -8,3 +8,4 @@ pydantic
 pytest
 httpx
 flake8
+python-multipart
