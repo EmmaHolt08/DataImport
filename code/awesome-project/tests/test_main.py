@@ -73,7 +73,7 @@ def db_session_for_tests_fixture():
     # Database setup logic moved from override_get_db
     with test_engine.connect() as conn:
         try:
-            load_spatialite(conn) 
+            load_spatialite(conn.connection)
             print("geoalchemy2.load_spatialite() applied successfully within db_session_for_tests setup.")
             conn.execute(text("SELECT spatialite_version()")).scalar()
             print("SpatiaLite version check passed in db_session_for_tests fixture setup.")
