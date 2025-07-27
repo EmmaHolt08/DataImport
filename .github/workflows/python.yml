@@ -22,7 +22,7 @@ jobs:
         working-directory: ./code/awesome-project 
 
     env: # Set environment variables for all steps in this job
-      DATABASE_URL: sqlite:///./test-ci.db
+      DATABASE_URL: sqlite:///:memory:
       SPATIALITE_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu/mod_spatialite.so # <--- ADD THIS LINE
 
 
@@ -33,8 +33,8 @@ jobs:
       with:
         python-version: "3.13.5"
 
-    - name: Debug - Show app/database.py Content
-      run: cat app/database.py
+    - name: Debug - Show tests/test_main.py Content
+      run: cat tests/test_main.py
 
     - name: Install SpatiaLite
       run: |
