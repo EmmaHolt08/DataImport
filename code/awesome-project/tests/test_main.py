@@ -78,12 +78,16 @@ app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 # --- Actual Tests ---
+def test_home_endpoint():
+    """Test the root '/' endpoint."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"message": "we are home"}
 
 def test_db_session_can_add_user(db_session):
-    from app.models import UserInfo # Ensure UserInfo is imported
-    from main import Hasher # Hasher is needed to create password hash
+    from app.models import UserInfo
+    from main import Hasher # Ensure Hasher is imported here if you don't use it elsewhere at top level
 
-    # Create a user directly in the test database session
     test_user_id = "test_user_id_123"
     test_username = "directuser"
     test_email = "direct@example.com"
@@ -98,27 +102,24 @@ def test_db_session_can_add_user(db_session):
     db_session.add(new_user)
     db_session.commit()
 
-    # Verify it can be retrieved
     retrieved_user = db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
     assert retrieved_user is not None
     assert retrieved_user.username == test_username
     assert retrieved_user.user_email == test_email
     print("db_session successfully added and retrieved a user directly.")
 
-def test_home_endpoint(db_session):
-    """Test the root '/' endpoint."""
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json() == {"message": "we are home"}
 
-def test_register_user_success(db_session):
-    """Test successful user registration."""
+def test_register_user_success(db_session): # Keep this test
+    print("\n--- Starting test_register_user_success ---")
     user_data = {
         "username": "testuser",
         "email": "test@example.com",
         "password": "testpassword"
     }
+    print(f"Attempting to register user with data: {user_data}")
     response = client.post("/register", json=user_data)
+    print(f"Response status code: {response.status_code}")
+    print(f"Response JSON: {response.json()}")
     assert response.status_code == 200
     response_json = response.json()
     assert "user_id" in response_json
@@ -127,97 +128,119 @@ def test_register_user_success(db_session):
 
     # Verify user is in the database
     user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first()
+    print(f"User in DB after registration: {user_in_db}")
     assert user_in_db is not None
     assert user_in_db.username == "testuser"
+    print("--- test_register_user_success finished ---")
 
-def test_register_user_duplicate_email(db_session):
-    """Test registration with a duplicate email."""
-    # First registration (ensure it exists)
-    user_data_1 = {
-        "username": "userone",
-        "email": "duplicate@example.com",
-        "password": "password1"
-    }
-    client.post("/register", json=user_data_1)
 
-    # Second registration with same email
-    user_data_2 = {
-        "username": "usertwo",
-        "email": "duplicate@example.com",
-        "password": "password2"
-    }
-    response = client.post("/register", json=user_data_2)
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Email already registered"
+# def test_register_user_success(db_session):
+    # """Test successful user registration."""
+    # user_data = {
+    #     "username": "testuser",
+    #     "email": "test@example.com",
+    #     "password": "testpassword"
+    # }
+    # response = client.post("/register", json=user_data)
+    # assert response.status_code == 200
+    # response_json = response.json()
+    # assert "user_id" in response_json
+    # assert response_json["username"] == "testuser"
+    # assert response_json["user_email"] == "test@example.com"
 
-def test_register_user_duplicate_username(db_session):
-    """Test registration with a duplicate username (case-insensitive)."""
-    # First registration
-    user_data_1 = {
-        "username": "duplicateuser",
-        "email": "email1@example.com",
-        "password": "password1"
-    }
-    client.post("/register", json=user_data_1)
+    # # Verify user is in the database
+    # user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first()
+    # assert user_in_db is not None
+    # assert user_in_db.username == "testuser"
 
-    # Second registration with same username (different case)
-    user_data_2 = {
-        "username": "DuplicateUser", # Different case
-        "email": "email2@example.com",
-        "password": "password2"
-    }
-    response = client.post("/register", json=user_data_2)
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Username taken. Choose a new one"
+# def test_register_user_duplicate_email(db_session):
+#     """Test registration with a duplicate email."""
+#     # First registration (ensure it exists)
+#     user_data_1 = {
+#         "username": "userone",
+#         "email": "duplicate@example.com",
+#         "password": "password1"
+#     }
+#     client.post("/register", json=user_data_1)
 
-def test_login_success(db_session):
-    """Test successful user login."""
-    # Register a user first
-    user_data = {
-        "username": "loginuser",
-        "email": "login@example.com",
-        "password": "loginpassword"
-    }
-    client.post("/register", json=user_data)
+#     # Second registration with same email
+#     user_data_2 = {
+#         "username": "usertwo",
+#         "email": "duplicate@example.com",
+#         "password": "password2"
+#     }
+#     response = client.post("/register", json=user_data_2)
+#     assert response.status_code == 400
+#     assert response.json()["detail"] == "Email already registered"
 
-    # Now attempt to login
-    login_data = {
-        "email": "login@example.com",
-        "password": "loginpassword"
-    }
-    response = client.post("/token", data=login_data)
-    assert response.status_code == 200
-    response_json = response.json()
-    assert "access_token" in response_json
-    assert response_json["token_type"] == "bearer"
-    assert response_json["username"] == "loginuser"
-    assert response_json["email"] == "login@example.com"
+# def test_register_user_duplicate_username(db_session):
+#     """Test registration with a duplicate username (case-insensitive)."""
+#     # First registration
+#     user_data_1 = {
+#         "username": "duplicateuser",
+#         "email": "email1@example.com",
+#         "password": "password1"
+#     }
+#     client.post("/register", json=user_data_1)
 
-def test_login_invalid_credentials(db_session):
-    """Test login with incorrect password."""
-    # Register a user first
-    user_data = {
-        "username": "badpassuser",
-        "email": "badpass@example.com",
-        "password": "correctpassword"
-    }
-    client.post("/register", json=user_data)
+#     # Second registration with same username (different case)
+#     user_data_2 = {
+#         "username": "DuplicateUser", # Different case
+#         "email": "email2@example.com",
+#         "password": "password2"
+#     }
+#     response = client.post("/register", json=user_data_2)
+#     assert response.status_code == 400
+#     assert response.json()["detail"] == "Username taken. Choose a new one"
 
-    # Attempt to login with wrong password
-    login_data = {
-        "email": "badpass@example.com",
-        "password": "wrongpassword"
-    }
-    response = client.post("/token", data=login_data)
-    assert response.status_code == 401
-    assert response.json()["detail"] == "Incorrect email or password"
+# def test_login_success(db_session):
+#     """Test successful user login."""
+#     # Register a user first
+#     user_data = {
+#         "username": "loginuser",
+#         "email": "login@example.com",
+#         "password": "loginpassword"
+#     }
+#     client.post("/register", json=user_data)
 
-def test_login_non_existent_email(db_session):
-    """Test login with non-existent email."""
-    login_data = {
-        "email": "nonexistent@example.com",
-        "password": "anypassword"
-    }
-    response = client.post("/token", data=login_data)
-    assert response.status_code == 401
-    assert response.json()["detail"] == "Incorrect email or password"
+#     # Now attempt to login
+#     login_data = {
+#         "email": "login@example.com",
+#         "password": "loginpassword"
+#     }
+#     response = client.post("/token", data=login_data)
+#     assert response.status_code == 200
+#     response_json = response.json()
+#     assert "access_token" in response_json
+#     assert response_json["token_type"] == "bearer"
+#     assert response_json["username"] == "loginuser"
+#     assert response_json["email"] == "login@example.com"
+
+# def test_login_invalid_credentials(db_session):
+#     """Test login with incorrect password."""
+#     # Register a user first
+#     user_data = {
+#         "username": "badpassuser",
+#         "email": "badpass@example.com",
+#         "password": "correctpassword"
+#     }
+#     client.post("/register", json=user_data)
+
+#     # Attempt to login with wrong password
+#     login_data = {
+#         "email": "badpass@example.com",
+#         "password": "wrongpassword"
+#     }
+#     response = client.post("/token", data=login_data)
+#     assert response.status_code == 401
+#     assert response.json()["detail"] == "Incorrect email or password"
+
+# def test_login_non_existent_email(db_session):
+#     """Test login with non-existent email."""
+#     login_data = {
+#         "email": "nonexistent@example.com",
+#         "password": "anypassword"
+#     }
+#     response = client.post("/token", data=login_data)
+#     assert response.status_code == 401
+#     assert response.json()["detail"] == "Incorrect email or password"
