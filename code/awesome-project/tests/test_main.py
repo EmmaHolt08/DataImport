@@ -47,13 +47,6 @@ test_engine = create_engine(
     poolclass=StaticPool, # Crucial for in-memory SQLite with FastAPI Depends
 )
 
-try:
-    load_spatialite(test_engine)
-    print("SpatiaLite configured for test_engine via geoalchemy2.load_spatialite()")
-except Exception as e:
-    print(f"ERROR: geoalchemy2.load_spatialite() failed for test_engine: {e}")
-    raise
-
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 # Override the get_db dependency to use the test database session
