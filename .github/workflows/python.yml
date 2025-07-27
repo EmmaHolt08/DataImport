@@ -31,6 +31,11 @@ jobs:
       with:
         python-version: "3.13.5"
 
+    - name: Install SpatiaLite
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libsqlite3-mod-spatialite sqlite3 
+
     - name: Debug 1 - Verify Working Directory & List Contents
       run: |
         echo "Current working directory: $(pwd)"
