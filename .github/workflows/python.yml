@@ -28,25 +28,55 @@ jobs:
       with:
         python-version: "3.13.5"
 
-    - name: Debug - List Backend Directory Contents (Before Install)
-      run: ls -RF
+    - name: Debug 1 - Verify Working Directory & List Contents
+      run: |
+        echo "Current working directory: $(pwd)"
+        echo "Contents of current working directory:"
+        ls -la
+        echo "Contents of 'app/' (should exist and have __init__.py):"
+        ls -la app/
+        echo "Contents of 'tests/' (should exist and have __init__.py):"
+        ls -la tests/
+        echo "Contents of requirements.txt:"
+        cat requirements.txt
 
     - name: Install dependencies
       run: |
+        echo "Upgrading pip..."
         python3 -m pip install --upgrade pip
-        pip3 install flake8 pytest
-        if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        
+        echo "Attempting to install dependencies from requirements.txt..."
+        # Use 'set -e' to immediately exit if pip install fails
+        set -e 
+        if [ -f requirements.txt ]; then 
+          pip3 install -r requirements.txt
+          echo "Dependency installation command finished."
+        else
+          echo "ERROR: requirements.txt NOT FOUND in $(pwd)"
+          exit 1 # Fail the job if requirements.txt isn't found
+        fi
 
-    - name: Debug - Verify Installed Packages & Python Path
+    - name: Debug 2 - Verify Installed Packages & Python Environment
       run: |
         echo "--- Python Version ---"
         python3 --version
-        echo "--- pip List (Filtered for key packages) ---"
-        pip3 list | grep -E 'fastapi|httpx|pytest|uvicorn|sqlalchemy'
-        echo "--- Python sys.path ---"
+        echo "--- Python Executable Path ---"
+        which python3
+        echo "--- pip List (Checking for FastAPI, httpx, pytest) ---"
+        # Explicitly check for relevant packages
+        pip3 show fastapi || echo "fastapi not found by pip show"
+        pip3 show httpx || echo "httpx not found by pip show"
+        pip3 show pytest || echo "pytest not found by pip show"
+        
+        echo "--- Full pip List (for comprehensive check) ---"
+        pip3 list # List all installed packages
+        
+        echo "--- Python sys.path (where Python looks for modules) ---"
         python3 -c "import sys; print(sys.path)"
-        echo "--- Current Working Directory ---"
-        pwd
+        
+        echo "--- Check if 'app' directory is importable ---"
+        python3 -c "import app.main; print('app.main imported successfully')" || echo "Error importing app.main"
+
 
     - name: Lint with flake8
       run: |
