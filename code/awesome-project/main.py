@@ -15,7 +15,7 @@ from app import router
 
 import bcrypt
 
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 async def get_current_user(
     authorization: str = Header(...), 
