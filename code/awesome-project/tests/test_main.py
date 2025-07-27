@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import sqlalchemy
 from sqlalchemy.pool import StaticPool
@@ -7,19 +7,13 @@ import pytest
 import sqlite3
 from geoalchemy2 import load_spatialite
 
-# Import your FastAPI app and database components
-# Adjust the import path based on your actual project structure
-# For example, if your app.py (the code you provided) is directly in 'app' folder:
 from main import app, get_db, Base
-from app.models import UserInfo, DataImport # Import your models
-from app.database import engine # This might need to be mocked or an in-memory db
+from app.models import UserInfo, DataImport 
+from app.database import engine 
 
-# --- Database Setup for Testing ---
-# We'll use an in-memory SQLite database for tests for speed and isolation.
-# This avoids polluting your development database.
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db" # Or "sqlite:///:memory:" for purely in-memory
 
-# --- NEW: Custom SQLite creator that explicitly loads SpatiaLite ---
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db" 
+
 def spatialite_sqlite_creator(db_url):
     """Custom creator function for SQLite to load SpatiaLite extension."""
     conn_path = db_url.replace("sqlite:///", "")
@@ -49,19 +43,65 @@ test_engine = create_engine(
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
-@pytest.fixture(name="get_test_db")
-def get_test_db_override(db_session): # This fixture receives the db_session
-    """Provides a database session to FastAPI for dependency override."""
-    yield db_session 
+@pytest.fixture(name="db_session", scope="function") # Scope 'function' for per-test isolation
+def db_session_fixture(): # Renamed the function to avoid confusion
+    # This setup code is what was in override_get_db
+    # It prepares the test database
+    with test_engine.connect() as conn:
+        try:
+            load_spatialite(conn) 
+            print("geoalchemy2.load_spatialite() applied successfully within db_session setup.")
+            result = conn.execute(text("SELECT spatialite_version()")).scalar()
+            print(f"SpatiaLite version from test_engine in fixture: {result}")
+        except Exception as e:
+            print(f"ERROR: geoalchemy2.load_spatialite() failed within db_session setup: {e}")
+            raise 
+        
+    Base.metadata.create_all(bind=test_engine) # Create tables for tests
+    
+    db = TestingSessionLocal()
+    try:
+        yield db # This is the database session that tests and FastAPI will use
+    finally:
+        db.close()
 
-app.dependency_overrides[get_db] = get_test_db_override
+def get_db_override():
+     yield from TestingSessionLocal()
+
+@pytest.fixture(name="db_session_for_tests", scope="function") # Renamed for clarity
+def db_session_for_tests_fixture():
+    # Database setup logic moved from override_get_db
+    with test_engine.connect() as conn:
+        try:
+            load_spatialite(conn) 
+            print("geoalchemy2.load_spatialite() applied successfully within db_session_for_tests setup.")
+            conn.execute(text("SELECT spatialite_version()")).scalar()
+            print("SpatiaLite version check passed in db_session_for_tests fixture setup.")
+        except Exception as e:
+            print(f"ERROR: geoalchemy2.load_spatialite() failed within db_session_for_tests setup: {e}")
+            raise 
+        
+    Base.metadata.create_all(bind=test_engine) 
+    
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@pytest.fixture(name="get_db_override_for_fastapi") # Renamed again for clarity
+def get_db_override_for_fastapi_fixture(db_session_for_tests):
+    yield db_session_for_tests
+
+#app.dependency_overrides[get_db] = get_test_db_override
+app.dependency_overrides[get_db] = get_db_override_for_fastapi_fixture
+
 
 # Create a TestClient instance
 client = TestClient(app)
 
 # --- Actual Tests ---
 def test_home_endpoint():
-    """Test the root '/' endpoint."""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"message": "we are home"}
