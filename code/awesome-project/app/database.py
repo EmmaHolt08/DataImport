@@ -17,17 +17,42 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set. Please check your .env file.")
 
-def load_spatialite_extension(dbapi_connection, connection_record):
+def load_spatialite_extension_on_connect(dbapi_connection, connection_record):
     """
-    Function to load SpatiaLite extension for SQLite connections.
-    This is called when a new connection is created by SQLAlchemy.
+    Function to enable extension loading for SQLite and try to load SpatiaLite.
     """
     try:
+        # Enable extension loading for this connection
         dbapi_connection.enable_load_extension(True)
-        dbapi_connection.load_extension("/usr/lib/x86_64-linux-gnu/mod_spatialite.so") 
-        dbapi_connection.enable_load_extension(False) # Disable for security after loading
-    except sqlite3.OperationalError as e:
-        print(f"Warning: Could not load SpatiaLite extension. This is expected if not using SQLite with spatial functions. Error: {e}")
+        
+        potential_spatialite_paths = [
+            "/usr/lib/x86_64-linux-gnu/mod_spatialite.so", # Confirmed by your 'find'
+            "/usr/lib/sqlite3/mod_spatialite.so",         # Original guess
+            "/usr/local/lib/mod_spatialite.so",
+            "/usr/local/bin/mod_spatialite.so",
+            "mod_spatialite",                              # Try just the name if it's in a system path
+        ]
+        
+        loaded = False
+        for path in potential_spatialite_paths:
+            try:
+                dbapi_connection.load_extension(path)
+                print(f"Successfully loaded SpatiaLite from: {path}")
+                loaded = True
+                break
+            except sqlite3.OperationalError as e:
+                print(f"Failed to load SpatiaLite from {path}: {e}")
+        
+        if not loaded:
+            print("ERROR: SpatiaLite extension could not be loaded from any known path.")
+            # Optionally raise an error here if you consider it fatal for app startup
+            # raise RuntimeError("SpatiaLite extension missing or failed to load")
+
+    except Exception as e:
+        print(f"CRITICAL ERROR during SpatiaLite setup: {e}")
+    finally:
+        # Always disable extension loading after trying to load, for security
+        dbapi_connection.enable_load_extension(False)
 
 
 # Create the SQLAlchemy engine. This is the main interface to your database.
@@ -38,7 +63,7 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
         connect_args={"check_same_thread": False} # Often needed for SQLite in multi-threaded contexts like web servers
     )
     # Register the event listener to load SpatiaLite when a new connection is established
-    sqlalchemy.event.listen(engine, "connect", load_spatialite_extension)
+    sqlalchemy.event.listen(engine, "connect", load_spatialite_extension_on_connect)
 else:
     # For other database types (PostgreSQL, etc.), create engine normally
     engine = create_engine(SQLALCHEMY_DATABASE_URL)
