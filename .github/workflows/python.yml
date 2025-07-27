@@ -23,6 +23,8 @@ jobs:
 
     env: # Set environment variables for all steps in this job
       DATABASE_URL: sqlite:///./test-ci.db
+      SPATIALITE_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu/mod_spatialite.so # <--- ADD THIS LINE
+
 
     steps:
     - uses: actions/checkout@v4
