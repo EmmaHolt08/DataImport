@@ -106,11 +106,11 @@ def test_home_endpoint():
     assert response.status_code == 200
     assert response.json() == {"message": "we are home"}
 
-def test_db_session_can_add_user(get_test_db):
+def test_db_session_can_add_user(db_session_for_tests):
     from app.models import UserInfo
     from main import Hasher # Ensure Hasher is imported here if you don't use it elsewhere at top level
 
-    db_session = get_test_db
+    db_session = db_session_for_tests 
 
     test_user_id = "test_user_id_123"
     test_username = "directuser"
@@ -133,7 +133,7 @@ def test_db_session_can_add_user(get_test_db):
     print("db_session successfully added and retrieved a user directly.")
 
 
-def test_register_user_success(get_test_db): # Keep this test
+def test_register_user_success(db_session_for_tests): # Keep this test
     print("\n--- Starting test_register_user_success ---")
     user_data = {
         "username": "testuser",
@@ -151,7 +151,8 @@ def test_register_user_success(get_test_db): # Keep this test
     assert response_json["user_email"] == "test@example.com"
 
     # Verify user is in the database
-    user_in_db = get_test_db.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first()
+    db_session = db_session_for_tests # Assign for clarity
+    user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
     print(f"User in DB after registration: {user_in_db}")
     assert user_in_db is not None
     assert user_in_db.username == "testuser"
