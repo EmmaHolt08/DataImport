@@ -20,6 +20,9 @@ jobs:
     defaults:
       run:
         working-directory: ./code/awesome-project 
+        
+      env: # Set environment variables for all steps in this job
+        DATABASE_URL: sqlite:///./test-ci.db
 
     steps:
     - uses: actions/checkout@v4
