@@ -49,30 +49,12 @@ test_engine = create_engine(
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
-# Override the get_db dependency to use the test database session
-@pytest.fixture(name="db_session")
-def override_get_db():
-    # TEST: Check if SpatiaLite is loaded BEFORE creating tables
-    # This might help debug if it fails after engine creation but before table creation
-    try:
-        with test_engine.connect() as conn:
-            result = conn.execute(sqlalchemy.text("SELECT spatialite_version()")).scalar()
-            print(f"SpatiaLite version from test_engine: {result}")
-    except Exception as e:
-        print(f"WARNING: Could not check SpatiaLite version from test_engine: {e}")
-        # If this is the problem, the table creation will fail
-        # This print will help us see if the engine itself got spatialite
+@pytest.fixture(name="get_test_db")
+def get_test_db_override(db_session): # This fixture receives the db_session
+    """Provides a database session to FastAPI for dependency override."""
+    yield db_session 
 
-    Base.metadata.create_all(bind=test_engine) # Create tables for tests
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        # Optional: drop all tables after each test function for complete isolation
-        # Base.metadata.drop_all(bind=test_engine)
-
-app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = get_test_db_override
 
 # Create a TestClient instance
 client = TestClient(app)
