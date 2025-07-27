@@ -5,7 +5,7 @@ import sqlalchemy
 from sqlalchemy.pool import StaticPool
 import pytest
 import sqlite3
-from geoalchemy2.functions import load_spatialite
+from geoalchemy2 import load_spatialite
 
 # Import your FastAPI app and database components
 # Adjust the import path based on your actual project structure
@@ -47,8 +47,12 @@ test_engine = create_engine(
     poolclass=StaticPool, # Crucial for in-memory SQLite with FastAPI Depends
 )
 
-# You can also try to apply load_spatialite here, though the creator should be sufficient
-# load_spatialite(test_engine) # Apply geoalchemy2 setup for the test engine
+try:
+    load_spatialite(test_engine)
+    print("SpatiaLite configured for test_engine via geoalchemy2.load_spatialite()")
+except Exception as e:
+    print(f"ERROR: geoalchemy2.load_spatialite() failed for test_engine: {e}")
+    raise
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
