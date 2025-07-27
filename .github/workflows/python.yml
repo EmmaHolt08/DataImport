@@ -31,6 +31,9 @@ jobs:
       with:
         python-version: "3.13.5"
 
+    - name: Debug - Show app/database.py Content
+      run: cat app/database.py
+
     - name: Install SpatiaLite
       run: |
         sudo apt-get update
