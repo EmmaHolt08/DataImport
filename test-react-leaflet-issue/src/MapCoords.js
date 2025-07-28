@@ -18,7 +18,7 @@ function MapContent({ setMapInstance }) {
 }
 
 export default function MapCoords(){ 
-    const [_, setMap] = useState(null);
+    const [_, setMap] = useState(null); // eslint-disable-line no-unused-vars
     const [geoJsonData, setGeoJsonData] = useState(null);
 
     //gets points from database
