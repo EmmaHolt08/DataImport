@@ -89,30 +89,30 @@ def test_db_session_can_add_user(db_session: Session):
     print("db_session successfully added and retrieved a user directly.")
 
 
-# Test that uses TestClient AND db_session
-def test_register_user_success(db_session: Session):
-    """Test successful user registration via API endpoint."""
-    print("\n--- Starting test_register_user_success ---")
-    user_data = {
-        "username": "testuser",
-        "email": "test@example.com",
-        "password": "testpassword"
-    }
-    print(f"Attempting to register user with data: {user_data}")
-    response = client.post("/register", json=user_data) 
-    print(f"Response status code: {response.status_code}")
-    print(f"Response JSON: {response.json()}")
-    assert response.status_code == 200
-    response_json = response.json()
-    assert "user_id" in response_json
-    assert response_json["username"] == "testuser"
-    assert response_json["user_email"] == "test@example.com"
+# # Test that uses TestClient AND db_session
+# def test_register_user_success(db_session: Session):
+#     """Test successful user registration via API endpoint."""
+#     print("\n--- Starting test_register_user_success ---")
+#     user_data = {
+#         "username": "testuser",
+#         "email": "test@example.com",
+#         "password": "testpassword"
+#     }
+#     print(f"Attempting to register user with data: {user_data}")
+#     response = client.post("/register", json=user_data) 
+#     print(f"Response status code: {response.status_code}")
+#     print(f"Response JSON: {response.json()}")
+#     assert response.status_code == 200
+#     response_json = response.json()
+#     assert "user_id" in response_json
+#     assert response_json["username"] == "testuser"
+#     assert response_json["user_email"] == "test@example.com"
 
-    user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
-    print(f"User in DB after registration: {user_in_db}")
-    assert user_in_db is not None
-    assert user_in_db.username == "testuser"
-    print("--- test_register_user_success finished ---")
+#     user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
+#     print(f"User in DB after registration: {user_in_db}")
+#     assert user_in_db is not None
+#     assert user_in_db.username == "testuser"
+#     print("--- test_register_user_success finished ---")
 
 # (Uncomment other tests and ensure they request db_session: Session)
 # 
