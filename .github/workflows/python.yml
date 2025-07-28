@@ -59,21 +59,15 @@ jobs:
     #     echo "Contents of requirements.txt:"
     #     cat requirements.txt
 
+    - name: Install Python C-extension dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libffi-dev build-essential
+
     - name: Install dependencies
       run: |
-        echo "Upgrading pip..."
         python3 -m pip install --upgrade pip
-        
-        echo "Attempting to install dependencies from requirements.txt..."
-        # Use 'set -e' to immediately exit if pip install fails
-        set -e 
-        if [ -f requirements.txt ]; then 
-          pip3 install -r requirements.txt
-          echo "Dependency installation command finished."
-        else
-          echo "ERROR: requirements.txt NOT FOUND in $(pwd)"
-          exit 1 # Fail the job if requirements.txt isn't found
-        fi
+        if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
 
     # - name: Debug 2 - Verify SpatiaLite & Python Environment
     #   run: |
