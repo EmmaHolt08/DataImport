@@ -1,60 +1,41 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import NullPool # Use NullPool for TestClient with external DB
+from sqlalchemy.pool import NullPool
 import pytest
-# No need for sqlite3 or load_spatialite if strictly using PostgreSQL
-# import sqlite3
-# from geoalchemy2 import load_spatialite
+# A LOT is commented so here:
+# - some are methods i didnt need for the original test to go through bc i was struggling
+# - the test register user has issues with bycrpt and TestClient (i think)
 
-# Import your FastAPI app and database components
 from main import app, get_db, Base
-from app.models import UserInfo, DataImport # UserInfo and DataImport use Base
-# The 'engine' from app.database is the main app's engine, not used directly by test_engine
+from app.models import UserInfo, DataImport 
 
-
-# --- Database Setup for Testing ---
-# IMPORTANT: Use the PostgreSQL URL for tests
 SQLALCHEMY_DATABASE_URL = "postgresql://testuser:testpassword@localhost/testdb"
 
-# No custom creator needed for PostgreSQL, just create the engine directly
 test_engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    # No connect_args like check_same_thread for PostgreSQL
-    poolclass=NullPool, # Use NullPool with external DBs like Postgres for TestClient
+    poolclass=NullPool, 
 )
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
-# --- The standard Pytest Fixture for FastAPI DB Testing ---
-@pytest.fixture(name="db_session", scope="function") # Common name, per-function scope
-def _db_session_fixture(): # Internal function name for the fixture
-    # 1. Database schema creation (runs once per test function setup)
-    # This will create tables in the test PostgreSQL database
+@pytest.fixture(name="db_session", scope="function") 
+def _db_session_fixture(): 
     Base.metadata.create_all(bind=test_engine) 
     
-    # 2. Session creation and yield (yields the session to the test, then closes)
     db = TestingSessionLocal()
     try:
-        yield db # This is the actual Session object provided to tests AND to FastAPI
+        yield db 
     finally:
         db.close()
-        # IMPORTANT: Drop tables after each test to ensure isolation and idempotency
         Base.metadata.drop_all(bind=test_engine)
 
-
-# --- Apply the Override ---
-# This is the standard way: assign the fixture function itself to the override.
 app.dependency_overrides[get_db] = _db_session_fixture
 
-
-# Create a TestClient instance (must be done after dependency overrides are set)
 client = TestClient(app)
 
-
 # --- Actual Tests ---
-# (Your existing tests go here, unchanged from the last successful test code you provided)
 
 def test_home_endpoint():
     """Test the root '/' endpoint."""
@@ -114,7 +95,6 @@ def test_db_session_can_add_user(db_session: Session):
 #     assert user_in_db.username == "testuser"
 #     print("--- test_register_user_success finished ---")
 
-# (Uncomment other tests and ensure they request db_session: Session)
 # 
 # from fastapi.testclient import TestClient
 # from sqlalchemy import create_engine, text
