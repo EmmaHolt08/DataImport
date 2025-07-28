@@ -27,16 +27,24 @@ jobs:
 
       - name: Ensure fresh node_modules and Install dependencies
         run: |
-          rm -rf node_modules # Delete existing node_modules
-          npm cache clean --force 
-          npm ci 
+          rm -rf node_modules
+          npm cache clean --force
+          npm ci
+        working-directory: ./test-react-leaflet-issue/
+
+      - name: Debug Node Modules
+        run: |
+          echo "Listing contents of node_modules:"
+          ls -F node_modules/react-router-dom/ 
+          echo "Listing package-lock.json (first 20 lines):"
+          head -n 20 package-lock.json
         working-directory: ./test-react-leaflet-issue/
 
       - name: Build project
         run: npm run build --if-present
-        working-directory: ./test-react-leaflet-issue/ 
+        working-directory: ./test-react-leaflet-issue/
 
       - name: Run tests
         run: npm test
-        working-directory: ./test-react-leaflet-issue/ 
+        working-directory: ./test-react-leaflet-issue/
 
