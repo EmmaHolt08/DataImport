@@ -1,8 +1,10 @@
+//reportform
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css'; 
-import AuthPage, { AuthContext } from './AuthPage.js';
+import { AuthContext } from './AuthPage.js';
 
+// authpage, data
 // for marker
 import L from 'leaflet';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -29,7 +31,7 @@ export default function ReportForm() {
     const [lsType, setLsType] = useState('');
     const [lsSource, setLsSource] = useState('');
     const [impact, setImpact] = useState('');
-    const [wea13id, setWea13id] = useState(''); 
+    const [wea13id] = useState(''); 
     const [wea13type, setWea13type] = useState('');
 
     const [status, setStatus] = useState('idle'); 
@@ -42,7 +44,7 @@ export default function ReportForm() {
 
     const mapRef = useRef(null);
 
-    const [currentUserId, setCurrentUserid] = useState('');
+    //const [currentUserId, setCurrentUserid] = useState('');
 
     // gets max lsID from database and addds one to the assigned for new data
     useEffect(() => {
@@ -69,28 +71,28 @@ export default function ReportForm() {
             }
         };
 
-        const fetchUserId = async () => {
-            setStatus('getting userID');
-            setError(null);
-            try{
-                const response = await fetch('http://127.0.0.1:8000/user/me/');
-                if (!response.ok) {
-                    throw new Error('HTTP error (userid version)');
-                }
-                const data = await response.json();
+        // const fetchUserId = async () => {
+        //     setStatus('getting userID');
+        //     setError(null);
+        //     try{
+        //         const response = await fetch('http://127.0.0.1:8000/user/me/');
+        //         if (!response.ok) {
+        //             throw new Error('HTTP error (userid version)');
+        //         }
+        //         const data = await response.json();
 
-                setCurrentUserid(String(user_id))
-                setStatus ('idle');
-                console.log("UserID from db works")
+        //         setCurrentUserid(String(user_id))
+        //         setStatus ('idle');
+        //         console.log("UserID from db works")
 
-            }
+        //     }
 
-            catch (err) {
-                console.error("failed to get user id :(", err);
-                setError(new Error('Failed to get user id'))
-                setStatus('error')
-            }
-        }
+        //     catch (err) {
+        //         console.error("failed to get user id :(", err);
+        //         setError(new Error('Failed to get user id'))
+        //         setStatus('error')
+        //     }
+        // }
         fetchMaxIDs();
     }, [user_id]); 
 

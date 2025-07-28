@@ -1,3 +1,4 @@
+//MapCoords
 import React, { useState, useEffect, useMemo} from 'react'
 import { MapContainer, TileLayer, useMap, GeoJSON} from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
@@ -17,7 +18,7 @@ function MapContent({ setMapInstance }) {
 }
 
 export default function MapCoords(){ 
-    const [map, setMap] = useState(null);
+    const [_, setMap] = useState(null);
     const [geoJsonData, setGeoJsonData] = useState(null);
 
     //gets points from database
@@ -45,21 +46,6 @@ export default function MapCoords(){
             return;
         }
         
-        const processedData = data.map(item => {
-          console.log("Before parsing, item.geometry type:", typeof item.geometry, "value:", item.geometry); // DEBUG LOG 1
-          let parsedGeometry = item.geometry;
-          if (typeof item.geometry === 'string') {
-            try {
-              parsedGeometry = JSON.parse(item.geometry);
-              console.log("After parsing, parsedGeometry type:", typeof parsedGeometry, "value:", parsedGeometry); // DEBUG LOG 2
-            } catch (e) {
-              console.error("Failed to parse geometry string for map:", e, item.geometry);
-              parsedGeometry = null; // Set to null if parsing fails
-            }
-          }
-          return { ...item, geometry: parsedGeometry };
-        });
-
         //for the popup
         const featureCollection = {
           type: 'FeatureCollection',
