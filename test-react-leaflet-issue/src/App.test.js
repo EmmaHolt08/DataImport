@@ -5,12 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from './AuthPage'; 
 import App from './App'; 
 
-const mockAuthContextValue = {
-  user_id: null, 
-  login: jest.fn(),
-  logout: jest.fn(),
-};
-
 jest.mock('react-leaflet', () => ({
   MapContainer: ({ children }) => <div>{children}</div>,
   TileLayer: () => null,
@@ -21,9 +15,11 @@ jest.mock('react-leaflet', () => ({
   }),
 }));
 
-
-jest.mock('leaflet/dist/leaflet.css', () => {});
-
+const mockAuthContextValue = {
+  user_id: null, 
+  login: jest.fn(),
+  logout: jest.fn(),
+};
 
 describe('App component (Integration Test)', () => {
   test('renders login page when not authenticated initially', () => {
