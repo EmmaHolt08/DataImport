@@ -6,12 +6,11 @@ import AuthPage from './AuthPage'; // Make sure this path is correct relative to
 
 const MockApp = () => {
   return (
-    <BrowserRouter>
+    // <BrowserRouter>
       <AuthPage>
-        {/* This content will be rendered if the user is authenticated */}
         <div data-testid="app-content">Welcome to the Landslide App!</div>
       </AuthPage>
-    </BrowserRouter>
+    // </BrowserRouter>
   );
 };
 
