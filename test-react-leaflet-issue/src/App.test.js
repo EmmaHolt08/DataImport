@@ -1,36 +1,46 @@
 // src/App.test.js
 import { render, screen } from '@testing-library/react';
-import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
-import { AuthContext } from './AuthPage'; 
-import App from './App'; 
+import React from 'react'; 
+// Import helpers from setupTests.js
+import { setMockAuthContextValue, setMockRouterInitialEntries } from './setupTests';
 
-jest.mock('react-leaflet', () => ({
-  MapContainer: ({ children }) => <div>{children}</div>,
-  TileLayer: () => null,
-  Marker: () => null,
-  Popup: () => null,
-  useMapEvents: () => ({
-    click: jest.fn(),
-  }),
-}));
+// We no longer import MemoryRouter here directly, as we control it via setMockRouterInitialEntries.
+// import { MemoryRouter } from 'react-router-dom'; // Remove this line if it's there
 
-const mockAuthContextValue = {
-  user_id: null, 
-  login: jest.fn(),
-  logout: jest.fn(),
-};
+import App from './App'; // Import the original App.js
+
 
 describe('App component (Integration Test)', () => {
-  test('renders login page when not authenticated initially', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContextValue}>
-        <MemoryRouter initialEntries={['/']}> 
-          <App /> 
-        </MemoryRouter>
-      </AuthContext.Provider>
-    );
 
+  beforeEach(() => {
+    // Reset AuthContext to default unauthenticated state
+    setMockAuthContextValue({
+      user: null,
+      user_id: null,
+      token: null,
+      isLoadingAuth: false,
+      login: jest.fn(),
+      logout: jest.fn(),
+      handleSignIn: jest.fn(),
+      handleSignUp: jest.fn(),
+      handleSignOut: jest.fn(),
+    });
+    // Reset router to default initial entry for each test
+    setMockRouterInitialEntries(['/']); 
+    jest.clearAllMocks(); 
+  });
+
+
+  test('renders login page when not authenticated initially', () => {
+    setMockAuthContextValue({
+      user: null,
+      user_id: null,
+      token: null,
+      isLoadingAuth: false, 
+    });
+
+    // Render App directly. The mocked BrowserRouter/Router in App.js will handle routing.
+    render(<App />);
 
     const loginTitle = screen.getByText(/Landslide Report Login/i);
     expect(loginTitle).toBeInTheDocument();
@@ -39,24 +49,28 @@ describe('App component (Integration Test)', () => {
     expect(reportFormTitle).not.toBeInTheDocument();
   });
 
-  test('renders main application content when authenticated', () => {
-    const authenticatedAuthContextValue = {
-      ...mockAuthContextValue,
-      user_id: "authenticatedUser",
-    };
 
-    render(
-      <AuthContext.Provider value={authenticatedAuthContextValue}>
-        <MemoryRouter initialEntries={['/']}>
-          <App />
-        </MemoryRouter>
-      </AuthContext.Provider>
-    );
+  test('renders main application content when authenticated', () => {
+    setMockAuthContextValue({
+      user: { username: "testuser", email: "test@example.com", user_id: "authenticatedUser123" },
+      user_id: "authenticatedUser123",
+      token: "mock-auth-token",
+      isLoadingAuth: false,
+    });
+
+    // For this test, set the router's initial entry to /report
+    setMockRouterInitialEntries(['/report']); 
+
+    // Render App directly. It will use the mocked BrowserRouter starting at /report.
+    render(<App />); 
 
     const reportFormTitle = screen.getByRole('heading', { name: /Add New Landslide Data/i });
     expect(reportFormTitle).toBeInTheDocument();
 
     const loginTitle = screen.queryByText(/Landslide Report Login/i);
     expect(loginTitle).not.toBeInTheDocument();
+
+    const mainAppHeading = screen.getByRole('heading', { name: /Landslides/i });
+    expect(mainAppHeading).toBeInTheDocument();
   });
 });

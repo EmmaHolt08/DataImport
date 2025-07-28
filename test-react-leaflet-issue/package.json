@@ -44,7 +44,8 @@
       "node_modules/(?!(react-leaflet|@react-leaflet|react-router-dom|react-router|@remix-run)/)"
     ],
     "moduleNameMapper": {
-      "\\.(css|less|sass|scss)$": "<rootDir>/src/jest.setup.js"
+      "\\.(css|less|sass|scss)$": "<rootDir>/src/jest.setup.js",
+      "\\.(jpg|jpeg|png|gif|webp|svg)$": "<rootDir>/src/jest.setup.js"
     }
   }
 }
