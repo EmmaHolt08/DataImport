@@ -1,101 +1,73 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
-import sqlalchemy
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool # Use NullPool for TestClient with external DB
 import pytest
-import sqlite3
-from geoalchemy2 import load_spatialite
+# No need for sqlite3 or load_spatialite if strictly using PostgreSQL
+# import sqlite3
+# from geoalchemy2 import load_spatialite
 
+# Import your FastAPI app and database components
 from main import app, get_db, Base
-from app.models import UserInfo, DataImport 
-from app.database import engine 
+from app.models import UserInfo, DataImport # UserInfo and DataImport use Base
+# The 'engine' from app.database is the main app's engine, not used directly by test_engine
 
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db" 
+# --- Database Setup for Testing ---
+# IMPORTANT: Use the PostgreSQL URL for tests
+SQLALCHEMY_DATABASE_URL = "postgresql://testuser:testpassword@localhost/testdb"
 
-def spatialite_sqlite_creator(db_url):
-    """Custom creator function for SQLite to load SpatiaLite extension."""
-    conn_path = db_url.replace("sqlite:///", "")
-    conn = sqlite3.connect(conn_path)
-    conn.enable_load_extension(True)
-    try:
-        conn.load_extension("/usr/lib/x86_64-linux-gnu/mod_spatialite.so")
-        print("SpatiaLite loaded successfully in test_engine creator.")
-    except sqlite3.OperationalError as e:
-        print(f"ERROR: Failed to load SpatiaLite in test_engine creator: {e}")
-        raise 
-    finally:
-        conn.enable_load_extension(False) 
-    return conn
-
+# No custom creator needed for PostgreSQL, just create the engine directly
 test_engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    creator=lambda: spatialite_sqlite_creator(SQLALCHEMY_DATABASE_URL),
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool, 
+    # No connect_args like check_same_thread for PostgreSQL
+    poolclass=NullPool, # Use NullPool with external DBs like Postgres for TestClient
 )
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
-@pytest.fixture(name="db_session", scope="function") # Renamed the fixture
-def _db_session_fixture_setup(): # Internal function name
-    with test_engine.connect() as conn:
-        try:
-            load_spatialite(conn.connection) 
-            print("geoalchemy2.load_spatialite() applied successfully within _get_test_db_session_fixture setup.")
-            result = conn.execute(text("SELECT spatialite_version()")).scalar()
-            print(f"SpatiaLite version from test_engine in fixture: {result}")
-        except Exception as e:
-            print(f"ERROR: geoalchemy2.load_spatialite() failed within _get_test_db_session_fixture setup: {e}")
-            raise 
-        
+
+# --- The standard Pytest Fixture for FastAPI DB Testing ---
+@pytest.fixture(name="db_session", scope="function") # Common name, per-function scope
+def _db_session_fixture(): # Internal function name for the fixture
+    # 1. Database schema creation (runs once per test function setup)
+    # This will create tables in the test PostgreSQL database
     Base.metadata.create_all(bind=test_engine) 
     
+    # 2. Session creation and yield (yields the session to the test, then closes)
     db = TestingSessionLocal()
     try:
-        yield db 
+        yield db # This is the actual Session object provided to tests AND to FastAPI
     finally:
         db.close()
+        # IMPORTANT: Drop tables after each test to ensure isolation and idempotency
+        Base.metadata.drop_all(bind=test_engine)
 
-def get_db_override():
-    yield from _db_session_fixture_setup() 
 
-app.dependency_overrides[get_db] = get_db_override
+# --- Apply the Override ---
+# This is the standard way: assign the fixture function itself to the override.
+app.dependency_overrides[get_db] = _db_session_fixture
 
+
+# Create a TestClient instance (must be done after dependency overrides are set)
 client = TestClient(app)
 
+
 # --- Actual Tests ---
-
-def test_register_user_api_only(): # NO db_session argument here
-    print("\n--- Starting test_register_user_api_only ---")
-    user_data = {
-        "username": "api_user",
-        "email": "api@example.com",
-        "password": "api_password"
-    }
-    print(f"Attempting to register user via API with data: {user_data}")
-    response = client.post("/register", json=user_data) 
-    print(f"Response status code: {response.status_code}")
-    print(f"Response JSON: {response.json()}")
-    assert response.status_code == 200
-    response_json = response.json()
-    assert "user_id" in response_json
-    assert response_json["username"] == "api_user"
-    assert response_json["user_email"] == "api@example.com"
-    print("--- test_register_user_api_only finished ---")
-
+# (Your existing tests go here, unchanged from the last successful test code you provided)
 
 def test_home_endpoint():
+    """Test the root '/' endpoint."""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"message": "we are home"}
 
-def test_db_session_can_add_user(db_session): 
+# Test that directly uses db_session
+def test_db_session_can_add_user(db_session: Session): 
+    """Test direct database interaction to confirm db_session works."""
     from app.models import UserInfo 
-    from main import Hasher 
+    from main import Hasher # Hasher is in main.py
 
-    # Use db_session directly
     test_user_id = "test_user_id_123"
     test_username = "directuser"
     test_email = "direct@example.com"
@@ -107,7 +79,7 @@ def test_db_session_can_add_user(db_session):
         user_email=test_email,
         user_password=test_password_hash
     )
-    db_session.add(new_user) # Use the fixture directly
+    db_session.add(new_user) 
     db_session.commit()
 
     retrieved_user = db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
@@ -116,7 +88,10 @@ def test_db_session_can_add_user(db_session):
     assert retrieved_user.user_email == test_email
     print("db_session successfully added and retrieved a user directly.")
 
-def test_register_user_success(db_session): # Request 'db_session'
+
+# Test that uses TestClient AND db_session
+def test_register_user_success(db_session: Session):
+    """Test successful user registration via API endpoint."""
     print("\n--- Starting test_register_user_success ---")
     user_data = {
         "username": "testuser",
@@ -139,76 +114,106 @@ def test_register_user_success(db_session): # Request 'db_session'
     assert user_in_db.username == "testuser"
     print("--- test_register_user_success finished ---")
 
+# (Uncomment other tests and ensure they request db_session: Session)
+# 
+# from fastapi.testclient import TestClient
+# from sqlalchemy import create_engine, text
+# from sqlalchemy.orm import sessionmaker, Session
+# import sqlalchemy
+# from sqlalchemy.pool import StaticPool
+# import pytest
+# import sqlite3
+# from geoalchemy2 import load_spatialite
 
-# @pytest.fixture(name="test_db_session", scope="function") # Renamed for ultimate clarity
-# def test_db_session_fixture_setup(): # This is the function that defines the fixture 'test_db_session'
-#     # 1. Database creation (runs once per test function/session if scoped)
+# from main import app, get_db, Base
+# from app.models import UserInfo, DataImport 
+# from app.database import engine 
+
+
+# SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db" 
+
+# def spatialite_sqlite_creator(db_url):
+#     """Custom creator function for SQLite to load SpatiaLite extension."""
+#     conn_path = db_url.replace("sqlite:///", "")
+#     conn = sqlite3.connect(conn_path)
+#     conn.enable_load_extension(True)
+#     try:
+#         conn.load_extension("/usr/lib/x86_64-linux-gnu/mod_spatialite.so")
+#         print("SpatiaLite loaded successfully in test_engine creator.")
+#     except sqlite3.OperationalError as e:
+#         print(f"ERROR: Failed to load SpatiaLite in test_engine creator: {e}")
+#         raise 
+#     finally:
+#         conn.enable_load_extension(False) 
+#     return conn
+
+# test_engine = create_engine(
+#     SQLALCHEMY_DATABASE_URL,
+#     creator=lambda: spatialite_sqlite_creator(SQLALCHEMY_DATABASE_URL),
+#     connect_args={"check_same_thread": False},
+#     poolclass=StaticPool, 
+# )
+
+# TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+# @pytest.fixture(name="db_session", scope="function") # Renamed the fixture
+# def _db_session_fixture_setup(): # Internal function name
 #     with test_engine.connect() as conn:
 #         try:
 #             load_spatialite(conn.connection) 
-#             print("geoalchemy2.load_spatialite() applied successfully within test_db_session setup.")
+#             print("geoalchemy2.load_spatialite() applied successfully within _get_test_db_session_fixture setup.")
 #             result = conn.execute(text("SELECT spatialite_version()")).scalar()
 #             print(f"SpatiaLite version from test_engine in fixture: {result}")
 #         except Exception as e:
-#             print(f"ERROR: geoalchemy2.load_spatialite() failed within test_db_session setup: {e}")
-#             raise 
-        
-#     Base.metadata.create_all(bind=test_engine) # Creates tables for tests
-    
-#     # 2. Session creation (yields to the test, then closes)
-#     db = TestingSessionLocal()
-#     try:
-#         yield db # This is the actual Session object provided to tests
-#     finally:
-#         db.close()
-
-# def get_db_override():
-#     pass
-
-# @pytest.fixture(name="db_session_for_tests", scope="function") # Renamed for clarity
-# def db_session_for_tests_fixture():
-#     # Database setup logic moved from override_get_db
-#     with test_engine.connect() as conn:
-#         try:
-#             load_spatialite(conn.connection)
-#             print("geoalchemy2.load_spatialite() applied successfully within db_session_for_tests setup.")
-#             conn.execute(text("SELECT spatialite_version()")).scalar()
-#             print("SpatiaLite version check passed in db_session_for_tests fixture setup.")
-#         except Exception as e:
-#             print(f"ERROR: geoalchemy2.load_spatialite() failed within db_session_for_tests setup: {e}")
+#             print(f"ERROR: geoalchemy2.load_spatialite() failed within _get_test_db_session_fixture setup: {e}")
 #             raise 
         
 #     Base.metadata.create_all(bind=test_engine) 
     
 #     db = TestingSessionLocal()
 #     try:
-#         yield db
+#         yield db 
 #     finally:
 #         db.close()
 
-# @pytest.fixture(name="get_db_override_for_fastapi") # Renamed again for clarity
-# def get_db_override_for_fastapi_fixture(db_session_for_tests):
-#     yield db_session_for_tests
+# def get_db_override():
+#     yield from _db_session_fixture_setup() 
 
-# #app.dependency_overrides[get_db] = get_test_db_override
-# app.dependency_overrides[get_db] = get_db_override_for_fastapi_fixture
+# app.dependency_overrides[get_db] = get_db_override
 
-
-# # Create a TestClient instance
 # client = TestClient(app)
 
 # # --- Actual Tests ---
+
+# def test_register_user_api_only(): # NO db_session argument here
+#     print("\n--- Starting test_register_user_api_only ---")
+#     user_data = {
+#         "username": "api_user",
+#         "email": "api@example.com",
+#         "password": "api_password"
+#     }
+#     print(f"Attempting to register user via API with data: {user_data}")
+#     response = client.post("/register", json=user_data) 
+#     print(f"Response status code: {response.status_code}")
+#     print(f"Response JSON: {response.json()}")
+#     assert response.status_code == 200
+#     response_json = response.json()
+#     assert "user_id" in response_json
+#     assert response_json["username"] == "api_user"
+#     assert response_json["user_email"] == "api@example.com"
+#     print("--- test_register_user_api_only finished ---")
+
+
 # def test_home_endpoint():
 #     response = client.get("/")
 #     assert response.status_code == 200
 #     assert response.json() == {"message": "we are home"}
 
-# def test_db_session_can_add_user(db_session_for_tests):
-#     from app.models import UserInfo
-#     from main import Hasher # Ensure Hasher is imported here if you don't use it elsewhere at top level
+# def test_db_session_can_add_user(db_session): 
+#     from app.models import UserInfo 
+#     from main import Hasher 
 
-#     db_session = db_session_for_tests 
-
+#     # Use db_session directly
 #     test_user_id = "test_user_id_123"
 #     test_username = "directuser"
 #     test_email = "direct@example.com"
@@ -220,7 +225,7 @@ def test_register_user_success(db_session): # Request 'db_session'
 #         user_email=test_email,
 #         user_password=test_password_hash
 #     )
-#     db_session.add(new_user)
+#     db_session.add(new_user) # Use the fixture directly
 #     db_session.commit()
 
 #     retrieved_user = db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
@@ -229,8 +234,7 @@ def test_register_user_success(db_session): # Request 'db_session'
 #     assert retrieved_user.user_email == test_email
 #     print("db_session successfully added and retrieved a user directly.")
 
-
-# def test_register_user_success(db_session_for_tests): # Keep this test
+# def test_register_user_success(db_session): # Request 'db_session'
 #     print("\n--- Starting test_register_user_success ---")
 #     user_data = {
 #         "username": "testuser",
@@ -238,7 +242,7 @@ def test_register_user_success(db_session): # Request 'db_session'
 #         "password": "testpassword"
 #     }
 #     print(f"Attempting to register user with data: {user_data}")
-#     response = client.post("/register", json=user_data)
+#     response = client.post("/register", json=user_data) 
 #     print(f"Response status code: {response.status_code}")
 #     print(f"Response JSON: {response.json()}")
 #     assert response.status_code == 200
@@ -247,8 +251,6 @@ def test_register_user_success(db_session): # Request 'db_session'
 #     assert response_json["username"] == "testuser"
 #     assert response_json["user_email"] == "test@example.com"
 
-#     # Verify user is in the database
-#     db_session = db_session_for_tests # Assign for clarity
 #     user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
 #     print(f"User in DB after registration: {user_in_db}")
 #     assert user_in_db is not None
@@ -256,113 +258,229 @@ def test_register_user_success(db_session): # Request 'db_session'
 #     print("--- test_register_user_success finished ---")
 
 
-# def test_register_user_success(db_session):
-    # """Test successful user registration."""
-    # user_data = {
-    #     "username": "testuser",
-    #     "email": "test@example.com",
-    #     "password": "testpassword"
-    # }
-    # response = client.post("/register", json=user_data)
-    # assert response.status_code == 200
-    # response_json = response.json()
-    # assert "user_id" in response_json
-    # assert response_json["username"] == "testuser"
-    # assert response_json["user_email"] == "test@example.com"
+# # @pytest.fixture(name="test_db_session", scope="function") # Renamed for ultimate clarity
+# # def test_db_session_fixture_setup(): # This is the function that defines the fixture 'test_db_session'
+# #     # 1. Database creation (runs once per test function/session if scoped)
+# #     with test_engine.connect() as conn:
+# #         try:
+# #             load_spatialite(conn.connection) 
+# #             print("geoalchemy2.load_spatialite() applied successfully within test_db_session setup.")
+# #             result = conn.execute(text("SELECT spatialite_version()")).scalar()
+# #             print(f"SpatiaLite version from test_engine in fixture: {result}")
+# #         except Exception as e:
+# #             print(f"ERROR: geoalchemy2.load_spatialite() failed within test_db_session setup: {e}")
+# #             raise 
+        
+# #     Base.metadata.create_all(bind=test_engine) # Creates tables for tests
+    
+# #     # 2. Session creation (yields to the test, then closes)
+# #     db = TestingSessionLocal()
+# #     try:
+# #         yield db # This is the actual Session object provided to tests
+# #     finally:
+# #         db.close()
 
-    # # Verify user is in the database
-    # user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first()
-    # assert user_in_db is not None
-    # assert user_in_db.username == "testuser"
+# # def get_db_override():
+# #     pass
 
-# def test_register_user_duplicate_email(db_session):
-#     """Test registration with a duplicate email."""
-#     # First registration (ensure it exists)
-#     user_data_1 = {
-#         "username": "userone",
-#         "email": "duplicate@example.com",
-#         "password": "password1"
-#     }
-#     client.post("/register", json=user_data_1)
+# # @pytest.fixture(name="db_session_for_tests", scope="function") # Renamed for clarity
+# # def db_session_for_tests_fixture():
+# #     # Database setup logic moved from override_get_db
+# #     with test_engine.connect() as conn:
+# #         try:
+# #             load_spatialite(conn.connection)
+# #             print("geoalchemy2.load_spatialite() applied successfully within db_session_for_tests setup.")
+# #             conn.execute(text("SELECT spatialite_version()")).scalar()
+# #             print("SpatiaLite version check passed in db_session_for_tests fixture setup.")
+# #         except Exception as e:
+# #             print(f"ERROR: geoalchemy2.load_spatialite() failed within db_session_for_tests setup: {e}")
+# #             raise 
+        
+# #     Base.metadata.create_all(bind=test_engine) 
+    
+# #     db = TestingSessionLocal()
+# #     try:
+# #         yield db
+# #     finally:
+# #         db.close()
 
-#     # Second registration with same email
-#     user_data_2 = {
-#         "username": "usertwo",
-#         "email": "duplicate@example.com",
-#         "password": "password2"
-#     }
-#     response = client.post("/register", json=user_data_2)
-#     assert response.status_code == 400
-#     assert response.json()["detail"] == "Email already registered"
+# # @pytest.fixture(name="get_db_override_for_fastapi") # Renamed again for clarity
+# # def get_db_override_for_fastapi_fixture(db_session_for_tests):
+# #     yield db_session_for_tests
 
-# def test_register_user_duplicate_username(db_session):
-#     """Test registration with a duplicate username (case-insensitive)."""
-#     # First registration
-#     user_data_1 = {
-#         "username": "duplicateuser",
-#         "email": "email1@example.com",
-#         "password": "password1"
-#     }
-#     client.post("/register", json=user_data_1)
+# # #app.dependency_overrides[get_db] = get_test_db_override
+# # app.dependency_overrides[get_db] = get_db_override_for_fastapi_fixture
 
-#     # Second registration with same username (different case)
-#     user_data_2 = {
-#         "username": "DuplicateUser", # Different case
-#         "email": "email2@example.com",
-#         "password": "password2"
-#     }
-#     response = client.post("/register", json=user_data_2)
-#     assert response.status_code == 400
-#     assert response.json()["detail"] == "Username taken. Choose a new one"
 
-# def test_login_success(db_session):
-#     """Test successful user login."""
-#     # Register a user first
-#     user_data = {
-#         "username": "loginuser",
-#         "email": "login@example.com",
-#         "password": "loginpassword"
-#     }
-#     client.post("/register", json=user_data)
+# # # Create a TestClient instance
+# # client = TestClient(app)
 
-#     # Now attempt to login
-#     login_data = {
-#         "email": "login@example.com",
-#         "password": "loginpassword"
-#     }
-#     response = client.post("/token", data=login_data)
-#     assert response.status_code == 200
-#     response_json = response.json()
-#     assert "access_token" in response_json
-#     assert response_json["token_type"] == "bearer"
-#     assert response_json["username"] == "loginuser"
-#     assert response_json["email"] == "login@example.com"
+# # # --- Actual Tests ---
+# # def test_home_endpoint():
+# #     response = client.get("/")
+# #     assert response.status_code == 200
+# #     assert response.json() == {"message": "we are home"}
 
-# def test_login_invalid_credentials(db_session):
-#     """Test login with incorrect password."""
-#     # Register a user first
-#     user_data = {
-#         "username": "badpassuser",
-#         "email": "badpass@example.com",
-#         "password": "correctpassword"
-#     }
-#     client.post("/register", json=user_data)
+# # def test_db_session_can_add_user(db_session_for_tests):
+# #     from app.models import UserInfo
+# #     from main import Hasher # Ensure Hasher is imported here if you don't use it elsewhere at top level
 
-#     # Attempt to login with wrong password
-#     login_data = {
-#         "email": "badpass@example.com",
-#         "password": "wrongpassword"
-#     }
-#     response = client.post("/token", data=login_data)
-#     assert response.status_code == 401
-#     assert response.json()["detail"] == "Incorrect email or password"
+# #     db_session = db_session_for_tests 
 
-# def test_login_non_existent_email(db_session):
-#     """Test login with non-existent email."""
-#     login_data = {
-#         "email": "nonexistent@example.com",
-#         "password": "anypassword"
-#     }
-#     response = client.post("/token", data=login_data)
-#     assert response.status_code == 401
-#     assert response.json()["detail"] == "Incorrect email or password"
+# #     test_user_id = "test_user_id_123"
+# #     test_username = "directuser"
+# #     test_email = "direct@example.com"
+# #     test_password_hash = Hasher.get_password_hash("directpassword")
+
+# #     new_user = UserInfo(
+# #         user_id=test_user_id,
+# #         username=test_username,
+# #         user_email=test_email,
+# #         user_password=test_password_hash
+# #     )
+# #     db_session.add(new_user)
+# #     db_session.commit()
+
+# #     retrieved_user = db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
+# #     assert retrieved_user is not None
+# #     assert retrieved_user.username == test_username
+# #     assert retrieved_user.user_email == test_email
+# #     print("db_session successfully added and retrieved a user directly.")
+
+
+# # def test_register_user_success(db_session_for_tests): # Keep this test
+# #     print("\n--- Starting test_register_user_success ---")
+# #     user_data = {
+# #         "username": "testuser",
+# #         "email": "test@example.com",
+# #         "password": "testpassword"
+# #     }
+# #     print(f"Attempting to register user with data: {user_data}")
+# #     response = client.post("/register", json=user_data)
+# #     print(f"Response status code: {response.status_code}")
+# #     print(f"Response JSON: {response.json()}")
+# #     assert response.status_code == 200
+# #     response_json = response.json()
+# #     assert "user_id" in response_json
+# #     assert response_json["username"] == "testuser"
+# #     assert response_json["user_email"] == "test@example.com"
+
+# #     # Verify user is in the database
+# #     db_session = db_session_for_tests # Assign for clarity
+# #     user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
+# #     print(f"User in DB after registration: {user_in_db}")
+# #     assert user_in_db is not None
+# #     assert user_in_db.username == "testuser"
+# #     print("--- test_register_user_success finished ---")
+
+
+# # def test_register_user_success(db_session):
+#     # """Test successful user registration."""
+#     # user_data = {
+#     #     "username": "testuser",
+#     #     "email": "test@example.com",
+#     #     "password": "testpassword"
+#     # }
+#     # response = client.post("/register", json=user_data)
+#     # assert response.status_code == 200
+#     # response_json = response.json()
+#     # assert "user_id" in response_json
+#     # assert response_json["username"] == "testuser"
+#     # assert response_json["user_email"] == "test@example.com"
+
+#     # # Verify user is in the database
+#     # user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first()
+#     # assert user_in_db is not None
+#     # assert user_in_db.username == "testuser"
+
+# # def test_register_user_duplicate_email(db_session):
+# #     """Test registration with a duplicate email."""
+# #     # First registration (ensure it exists)
+# #     user_data_1 = {
+# #         "username": "userone",
+# #         "email": "duplicate@example.com",
+# #         "password": "password1"
+# #     }
+# #     client.post("/register", json=user_data_1)
+
+# #     # Second registration with same email
+# #     user_data_2 = {
+# #         "username": "usertwo",
+# #         "email": "duplicate@example.com",
+# #         "password": "password2"
+# #     }
+# #     response = client.post("/register", json=user_data_2)
+# #     assert response.status_code == 400
+# #     assert response.json()["detail"] == "Email already registered"
+
+# # def test_register_user_duplicate_username(db_session):
+# #     """Test registration with a duplicate username (case-insensitive)."""
+# #     # First registration
+# #     user_data_1 = {
+# #         "username": "duplicateuser",
+# #         "email": "email1@example.com",
+# #         "password": "password1"
+# #     }
+# #     client.post("/register", json=user_data_1)
+
+# #     # Second registration with same username (different case)
+# #     user_data_2 = {
+# #         "username": "DuplicateUser", # Different case
+# #         "email": "email2@example.com",
+# #         "password": "password2"
+# #     }
+# #     response = client.post("/register", json=user_data_2)
+# #     assert response.status_code == 400
+# #     assert response.json()["detail"] == "Username taken. Choose a new one"
+
+# # def test_login_success(db_session):
+# #     """Test successful user login."""
+# #     # Register a user first
+# #     user_data = {
+# #         "username": "loginuser",
+# #         "email": "login@example.com",
+# #         "password": "loginpassword"
+# #     }
+# #     client.post("/register", json=user_data)
+
+# #     # Now attempt to login
+# #     login_data = {
+# #         "email": "login@example.com",
+# #         "password": "loginpassword"
+# #     }
+# #     response = client.post("/token", data=login_data)
+# #     assert response.status_code == 200
+# #     response_json = response.json()
+# #     assert "access_token" in response_json
+# #     assert response_json["token_type"] == "bearer"
+# #     assert response_json["username"] == "loginuser"
+# #     assert response_json["email"] == "login@example.com"
+
+# # def test_login_invalid_credentials(db_session):
+# #     """Test login with incorrect password."""
+# #     # Register a user first
+# #     user_data = {
+# #         "username": "badpassuser",
+# #         "email": "badpass@example.com",
+# #         "password": "correctpassword"
+# #     }
+# #     client.post("/register", json=user_data)
+
+# #     # Attempt to login with wrong password
+# #     login_data = {
+# #         "email": "badpass@example.com",
+# #         "password": "wrongpassword"
+# #     }
+# #     response = client.post("/token", data=login_data)
+# #     assert response.status_code == 401
+# #     assert response.json()["detail"] == "Incorrect email or password"
+
+# # def test_login_non_existent_email(db_session):
+# #     """Test login with non-existent email."""
+# #     login_data = {
+# #         "email": "nonexistent@example.com",
+# #         "password": "anypassword"
+# #     }
+# #     response = client.post("/token", data=login_data)
+# #     assert response.status_code == 401
+# #     assert response.json()["detail"] == "Incorrect email or password"
