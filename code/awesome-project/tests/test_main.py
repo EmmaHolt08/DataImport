@@ -99,7 +99,7 @@ def test_home_endpoint():
     assert response.status_code == 200
     assert response.json() == {"message": "we are home"}
 
-def test_db_session_can_add_user(get_test_db_session: Session): 
+def test_db_session_can_add_user(get_test_db_session): 
     from app.models import UserInfo 
     from main import Hasher 
 
@@ -124,7 +124,7 @@ def test_db_session_can_add_user(get_test_db_session: Session):
     assert retrieved_user.user_email == test_email
     print("db_session successfully added and retrieved a user directly.")
 
-def test_register_user_success(get_test_db_session: Session): # Request 'db_session'
+def test_register_user_success(get_test_db_session): # Request 'db_session'
     print("\n--- Starting test_register_user_success ---")
     user_data = {
         "username": "testuser",
