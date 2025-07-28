@@ -1,8 +1,7 @@
 // src/setupTests.js
-import '@testing-library/jest-dom'; // Keep this at the top for Jest DOM matchers
+import '@testing-library/jest-dom'; 
 import React from 'react';
 
-// --- Global Mock AuthContext Value ---
 const mockAuthContextValue = {
   user: null,
   user_id: null,
@@ -19,7 +18,6 @@ export const setMockAuthContextValue = (newValue) => {
   Object.assign(mockAuthContextValue, newValue);
 };
 
-// --- Mock AuthPage Module ---
 jest.mock('./AuthPage', () => {
   const actualAuthPageModule = jest.requireActual('./AuthPage');
   return {
@@ -55,17 +53,13 @@ jest.mock('./AuthPage', () => {
   };
 });
 
-// --- Mock React Router DOM (Final Version for Test Control) ---
-// This variable will hold the initial entries for the MemoryRouter
-// This MUST be a variable that can be set by the test runner.
-let mockRouterInitialEntries = ['/']; // Default to root path
+
+let mockRouterInitialEntries = ['/']; 
 
 jest.mock('react-router-dom', () => {
   const actualRouterDom = jest.requireActual('react-router-dom');
   return {
     ...actualRouterDom,
-    // When BrowserRouter is used in App.js, it will now be a MemoryRouter
-    // AND it will receive the initialEntries from `mockRouterInitialEntries`.
     BrowserRouter: ({ children }) => {
       return (
         <actualRouterDom.MemoryRouter initialEntries={mockRouterInitialEntries}>
@@ -73,33 +67,26 @@ jest.mock('react-router-dom', () => {
         </actualRouterDom.MemoryRouter>
       );
     },
-    // Also explicitly mock the Router export if used directly
-    Router: ({ children }) => { // Mock Router if App uses <Router> directly too
+    Router: ({ children }) => { 
       return (
         <actualRouterDom.MemoryRouter initialEntries={mockRouterInitialEntries}>
           {children}
         </actualRouterDom.MemoryRouter>
       );
     },
-    // We explicitly export MemoryRouter so App.test.js can import it and use it if needed.
     MemoryRouter: actualRouterDom.MemoryRouter,
-    // Mock the hooks for components that use them.
     useNavigate: jest.fn(),
-    // useLocation will now implicitly follow the MemoryRouter's path
-    // We don't need to mock it with a static return value here anymore.
-    useLocation: jest.fn(() => actualRouterDom.useLocation()), // Use the actual hook, which gets state from MemoryRouter
-    useParams: jest.fn(() => actualRouterDom.useParams()), // Use actual hook
-    useMatch: jest.fn(() => actualRouterDom.useMatch()), // Use actual hook
+    useLocation: jest.fn(() => actualRouterDom.useLocation()), 
+    useParams: jest.fn(() => actualRouterDom.useParams()), 
+    useMatch: jest.fn(() => actualRouterDom.useMatch()), 
   };
 });
 
-// Export a helper to set initial entries for the mocked router.
 export const setMockRouterInitialEntries = (entries) => {
   mockRouterInitialEntries = entries;
 };
 
 
-// --- Mock Child Components of Routes ---
 jest.mock('./QueryForm.js', () => ({ __esModule: true, default: () => <div>Mock Query Form</div> }));
 jest.mock('./MapCoords.js', () => ({ __esModule: true, default: () => <div>Mock Map Coords</div> }));
 jest.mock('./ReportForm.js', () => ({ __esModule: true, default: () => <h1>Add New Landslide Data</h1> }));

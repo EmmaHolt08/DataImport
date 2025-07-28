@@ -1,19 +1,14 @@
 // src/App.test.js
 import { render, screen } from '@testing-library/react';
 import React from 'react'; 
-// Import helpers from setupTests.js
 import { setMockAuthContextValue, setMockRouterInitialEntries } from './setupTests';
 
-// We no longer import MemoryRouter here directly, as we control it via setMockRouterInitialEntries.
-// import { MemoryRouter } from 'react-router-dom'; // Remove this line if it's there
-
-import App from './App'; // Import the original App.js
+import App from './App'; 
 
 
 describe('App component (Integration Test)', () => {
 
   beforeEach(() => {
-    // Reset AuthContext to default unauthenticated state
     setMockAuthContextValue({
       user: null,
       user_id: null,
@@ -25,7 +20,6 @@ describe('App component (Integration Test)', () => {
       handleSignUp: jest.fn(),
       handleSignOut: jest.fn(),
     });
-    // Reset router to default initial entry for each test
     setMockRouterInitialEntries(['/']); 
     jest.clearAllMocks(); 
   });
@@ -39,7 +33,6 @@ describe('App component (Integration Test)', () => {
       isLoadingAuth: false, 
     });
 
-    // Render App directly. The mocked BrowserRouter/Router in App.js will handle routing.
     render(<App />);
 
     const loginTitle = screen.getByText(/Landslide Report Login/i);
@@ -58,10 +51,8 @@ describe('App component (Integration Test)', () => {
       isLoadingAuth: false,
     });
 
-    // For this test, set the router's initial entry to /report
     setMockRouterInitialEntries(['/report']); 
 
-    // Render App directly. It will use the mocked BrowserRouter starting at /report.
     render(<App />); 
 
     const reportFormTitle = screen.getByRole('heading', { name: /Add New Landslide Data/i });
