@@ -41,7 +41,8 @@
   },
   "jest": {
     "transformIgnorePatterns": [
-      "node_modules/(?!(react-leaflet|@react-leaflet|react-router-dom|@remix-run)/)"
+      "node_modules/(?!(react-leaflet|@react-leaflet|react-router-dom|react-router|@remix-run)/)"
+
     ],
     "moduleNameMapper": {
       "\\.(css|less|sass|scss)$": "<rootDir>/src/jest.setup.js",
