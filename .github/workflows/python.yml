@@ -33,25 +33,25 @@ jobs:
       with:
         python-version: "3.13.5"
 
-    - name: Debug - Show tests/test_main.py Content
-      run: cat tests/test_main.py
+    # - name: Debug - Show tests/test_main.py Content
+    #   run: cat tests/test_main.py
 
     - name: Install SpatiaLite
       run: |
         sudo apt-get update
         sudo apt-get install -y libsqlite3-mod-spatialite sqlite3 
 
-    - name: Debug 1 - Verify Working Directory & List Contents
-      run: |
-        echo "Current working directory: $(pwd)"
-        echo "Contents of current working directory:"
-        ls -la
-        echo "Contents of 'app/' (should exist and have __init__.py):"
-        ls -la app/
-        echo "Contents of 'tests/' (should exist and have __init__.py):"
-        ls -la tests/
-        echo "Contents of requirements.txt:"
-        cat requirements.txt
+    # - name: Debug 1 - Verify Working Directory & List Contents
+    #   run: |
+    #     echo "Current working directory: $(pwd)"
+    #     echo "Contents of current working directory:"
+    #     ls -la
+    #     echo "Contents of 'app/' (should exist and have __init__.py):"
+    #     ls -la app/
+    #     echo "Contents of 'tests/' (should exist and have __init__.py):"
+    #     ls -la tests/
+    #     echo "Contents of requirements.txt:"
+    #     cat requirements.txt
 
     - name: Install dependencies
       run: |
@@ -69,50 +69,50 @@ jobs:
           exit 1 # Fail the job if requirements.txt isn't found
         fi
 
-    - name: Debug 2 - Verify SpatiaLite & Python Environment
-      run: |
-        echo "--- Current Working Directory ---"
-        pwd
+    # - name: Debug 2 - Verify SpatiaLite & Python Environment
+    #   run: |
+    #     echo "--- Current Working Directory ---"
+    #     pwd
         
-        echo "--- Find mod_spatialite.so on system ---"
-        # Search for the spatialite module and output its exact path(s)
-        find /usr/lib /usr/local/lib -name "mod_spatialite.so*" 2>/dev/null || echo "mod_spatialite.so not found in standard paths"
+    #     echo "--- Find mod_spatialite.so on system ---"
+    #     # Search for the spatialite module and output its exact path(s)
+    #     find /usr/lib /usr/local/lib -name "mod_spatialite.so*" 2>/dev/null || echo "mod_spatialite.so not found in standard paths"
         
-        echo "--- Test SpatiaLite Load in Pure Python ---"
-        # Test the load_extension directly in a Python script
-        python3 -c """
-        import sqlite3
-        import os
+    #     echo "--- Test SpatiaLite Load in Pure Python ---"
+    #     # Test the load_extension directly in a Python script
+    #     python3 -c """
+    #     import sqlite3
+    #     import os
 
-        db_path = os.getenv('DATABASE_URL').replace('sqlite:///', '')
-        print(f'Attempting to connect to: {db_path}')
-        conn = sqlite3.connect(db_path)
-        try:
-          conn.enable_load_extension(True)
-          print('Attempting to load /usr/lib/sqlite3/mod_spatialite.so')
-          conn.load_extension('/usr/lib/sqlite3/mod_spatialite.so')
-          print('SpatiaLite extension loaded successfully in pure Python!')
-        except sqlite3.OperationalError as e:
-          print(f'Pure Python SpatiaLite load FAILED: {e}')
-        finally:
-          conn.enable_load_extension(False)
-          conn.close()
-        """
+    #     db_path = os.getenv('DATABASE_URL').replace('sqlite:///', '')
+    #     print(f'Attempting to connect to: {db_path}')
+    #     conn = sqlite3.connect(db_path)
+    #     try:
+    #       conn.enable_load_extension(True)
+    #       print('Attempting to load /usr/lib/sqlite3/mod_spatialite.so')
+    #       conn.load_extension('/usr/lib/sqlite3/mod_spatialite.so')
+    #       print('SpatiaLite extension loaded successfully in pure Python!')
+    #     except sqlite3.OperationalError as e:
+    #       print(f'Pure Python SpatiaLite load FAILED: {e}')
+    #     finally:
+    #       conn.enable_load_extension(False)
+    #       conn.close()
+    #     """
 
-        echo "--- Python Version ---"
-        python3 --version
-        echo "--- Python Executable Path ---"
-        which python3
-        echo "--- pip List (Checking for FastAPI, httpx, pytest) ---"
-        pip3 show fastapi || echo "fastapi not found by pip show"
-        pip3 show httpx || echo "httpx not found by pip show"
-        pip3 show pytest || echo "pytest not found by pip show"
-        echo "--- Full pip List (for comprehensive check) ---"
-        pip3 list
-        echo "--- Python sys.path (where Python looks for modules) ---"
-        python3 -c "import sys; print(sys.path)"
-        echo "--- Check if 'app' directory is importable ---"
-        python3 -c "import app.database; print('app.database imported successfully'); import main; print('main imported successfully')" || echo "Error importing app.database or main"
+    #     echo "--- Python Version ---"
+    #     python3 --version
+    #     echo "--- Python Executable Path ---"
+    #     which python3
+    #     echo "--- pip List (Checking for FastAPI, httpx, pytest) ---"
+    #     pip3 show fastapi || echo "fastapi not found by pip show"
+    #     pip3 show httpx || echo "httpx not found by pip show"
+    #     pip3 show pytest || echo "pytest not found by pip show"
+    #     echo "--- Full pip List (for comprehensive check) ---"
+    #     pip3 list
+    #     echo "--- Python sys.path (where Python looks for modules) ---"
+    #     python3 -c "import sys; print(sys.path)"
+    #     echo "--- Check if 'app' directory is importable ---"
+    #     python3 -c "import app.database; print('app.database imported successfully'); import main; print('main imported successfully')" || echo "Error importing app.database or main"
 
 
     - name: Lint with flake8

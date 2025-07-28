@@ -38,16 +38,16 @@ test_engine = create_engine(
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
-@pytest.fixture(name="test_db_session", scope="function") 
-def test_db_session_fixture_setup():
+@pytest.fixture(name="get_test_db_session", scope="function") # Renamed the fixture
+def _get_test_db_session_fixture(): # Internal function name
     with test_engine.connect() as conn:
         try:
             load_spatialite(conn.connection) 
-            print("geoalchemy2.load_spatialite() applied successfully within test_db_session setup.")
+            print("geoalchemy2.load_spatialite() applied successfully within _get_test_db_session_fixture setup.")
             result = conn.execute(text("SELECT spatialite_version()")).scalar()
             print(f"SpatiaLite version from test_engine in fixture: {result}")
         except Exception as e:
-            print(f"ERROR: geoalchemy2.load_spatialite() failed within test_db_session setup: {e}")
+            print(f"ERROR: geoalchemy2.load_spatialite() failed within _get_test_db_session_fixture setup: {e}")
             raise 
         
     Base.metadata.create_all(bind=test_engine) 
@@ -58,11 +58,10 @@ def test_db_session_fixture_setup():
     finally:
         db.close()
 
-def get_db_override():
-    pass
+def override_get_db_for_fastapi():
+    yield from _get_test_db_session_fixture()
 
-
-# app.dependency_overrides[get_db] = get_db_override_for_fastapi_fixture # OLD LINE
+app.dependency_overrides[get_db] = override_get_db_for_fastapi 
 
 @pytest.fixture(name="db_session", scope="function") 
 def _db_session_fixture(): 
@@ -100,7 +99,7 @@ def test_home_endpoint():
     assert response.status_code == 200
     assert response.json() == {"message": "we are home"}
 
-def test_db_session_can_add_user(db_session): 
+def test_db_session_can_add_user(get_test_db_session: Session): 
     from app.models import UserInfo 
     from main import Hasher 
 
@@ -116,16 +115,16 @@ def test_db_session_can_add_user(db_session):
         user_email=test_email,
         user_password=test_password_hash
     )
-    db_session.add(new_user)
-    db_session.commit()
+    get_test_db_session.add(new_user) # Use the fixture directly
+    get_test_db_session.commit()
 
-    retrieved_user = db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
+    retrieved_user = get_test_db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
     assert retrieved_user is not None
     assert retrieved_user.username == test_username
     assert retrieved_user.user_email == test_email
     print("db_session successfully added and retrieved a user directly.")
 
-def test_register_user_success(db_session): # Request 'db_session'
+def test_register_user_success(get_test_db_session: Session): # Request 'db_session'
     print("\n--- Starting test_register_user_success ---")
     user_data = {
         "username": "testuser",
@@ -142,7 +141,7 @@ def test_register_user_success(db_session): # Request 'db_session'
     assert response_json["username"] == "testuser"
     assert response_json["user_email"] == "test@example.com"
 
-    user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
+    user_in_db = get_test_db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
     print(f"User in DB after registration: {user_in_db}")
     assert user_in_db is not None
     assert user_in_db.username == "testuser"
