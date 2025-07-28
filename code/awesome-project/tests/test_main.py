@@ -72,7 +72,7 @@ def test_home_endpoint():
     assert response.status_code == 200
     assert response.json() == {"message": "we are home"}
 
-def test_db_session_can_add_user(get_test_db_session): 
+def test_db_session_can_add_user(db_session): 
     from app.models import UserInfo 
     from main import Hasher 
 
@@ -88,16 +88,16 @@ def test_db_session_can_add_user(get_test_db_session):
         user_email=test_email,
         user_password=test_password_hash
     )
-    get_test_db_session.add(new_user) # Use the fixture directly
-    get_test_db_session.commit()
+    db_session.add(new_user) # Use the fixture directly
+    db_session.commit()
 
-    retrieved_user = get_test_db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
+    retrieved_user = db_session.query(UserInfo).filter(UserInfo.user_id == test_user_id).first()
     assert retrieved_user is not None
     assert retrieved_user.username == test_username
     assert retrieved_user.user_email == test_email
     print("db_session successfully added and retrieved a user directly.")
 
-def test_register_user_success(get_test_db_session): # Request 'db_session'
+def test_register_user_success(db_session): # Request 'db_session'
     print("\n--- Starting test_register_user_success ---")
     user_data = {
         "username": "testuser",
@@ -114,7 +114,7 @@ def test_register_user_success(get_test_db_session): # Request 'db_session'
     assert response_json["username"] == "testuser"
     assert response_json["user_email"] == "test@example.com"
 
-    user_in_db = get_test_db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
+    user_in_db = db_session.query(UserInfo).filter(UserInfo.user_email == "test@example.com").first() 
     print(f"User in DB after registration: {user_in_db}")
     assert user_in_db is not None
     assert user_in_db.username == "testuser"
