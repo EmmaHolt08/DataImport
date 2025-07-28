@@ -29,12 +29,8 @@ jobs:
         run: |
           rm -rf node_modules # Delete existing node_modules
           npm cache clean --force 
-          npm ci # Perform a clean install based on package-lock.json
+          npm ci 
         working-directory: ./test-react-leaflet-issue/
-
-      # - name: Install dependencies
-      #   run: npm ci
-      #   working-directory: ./test-react-leaflet-issue/ 
 
       - name: Build project
         run: npm run build --if-present
