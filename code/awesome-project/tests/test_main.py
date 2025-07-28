@@ -38,8 +38,8 @@ test_engine = create_engine(
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
-@pytest.fixture(name="get_test_db_session", scope="function") # Renamed the fixture
-def _get_test_db_session_fixture(): # Internal function name
+@pytest.fixture(name="db_session", scope="function") # Renamed the fixture
+def _db_session_fixture_setup(): # Internal function name
     with test_engine.connect() as conn:
         try:
             load_spatialite(conn.connection) 
@@ -58,37 +58,10 @@ def _get_test_db_session_fixture(): # Internal function name
     finally:
         db.close()
 
-def override_get_db_for_fastapi():
-    yield from _get_test_db_session_fixture()
+def get_db_override():
+    yield from _db_session_fixture_setup() 
 
-app.dependency_overrides[get_db] = override_get_db_for_fastapi 
-
-@pytest.fixture(name="db_session", scope="function") 
-def _db_session_fixture(): 
-    with test_engine.connect() as conn:
-        try:
-            load_spatialite(conn.connection) 
-            print("geoalchemy2.load_spatialite() applied successfully within _db_session_fixture setup.")
-            result = conn.execute(text("SELECT spatialite_version()")).scalar()
-            print(f"SpatiaLite version from test_engine in fixture: {result}")
-        except Exception as e:
-            print(f"ERROR: geoalchemy2.load_spatialite() failed within _db_session_fixture setup: {e}")
-            raise 
-        
-    Base.metadata.create_all(bind=test_engine) 
-    
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@pytest.fixture(name="override_get_db_dependency")
-def _override_get_db_dependency(db_session: Session): 
-    yield db_session
-
-app.dependency_overrides[get_db] = _override_get_db_dependency 
+app.dependency_overrides[get_db] = get_db_override
 
 client = TestClient(app)
 
