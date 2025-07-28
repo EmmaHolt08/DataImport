@@ -67,6 +67,25 @@ client = TestClient(app)
 
 # --- Actual Tests ---
 
+def test_register_user_api_only(): # NO db_session argument here
+    print("\n--- Starting test_register_user_api_only ---")
+    user_data = {
+        "username": "api_user",
+        "email": "api@example.com",
+        "password": "api_password"
+    }
+    print(f"Attempting to register user via API with data: {user_data}")
+    response = client.post("/register", json=user_data) 
+    print(f"Response status code: {response.status_code}")
+    print(f"Response JSON: {response.json()}")
+    assert response.status_code == 200
+    response_json = response.json()
+    assert "user_id" in response_json
+    assert response_json["username"] == "api_user"
+    assert response_json["user_email"] == "api@example.com"
+    print("--- test_register_user_api_only finished ---")
+
+
 def test_home_endpoint():
     response = client.get("/")
     assert response.status_code == 200
