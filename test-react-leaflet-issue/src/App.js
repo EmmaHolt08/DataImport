@@ -4,21 +4,13 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import QueryForm from './QueryForm.js';
 import MapCoords from './MapCoords.js';
 import ReportForm from './ReportForm.js';
+import FunFact from './FunFact.js';
 import AuthPage, { AuthContext } from './AuthPage.js'; 
 
 //TO DO
-// comment programs
-// update readme
-
-//COMPLETED TODAY
-// commented main, authpage, and app
-// rebuilt docker, is correct version now
-
-//COMPLETED Wednesday
-// fixed the reloading issue
-// fixed username issue (made it so it is case insenstive when checking if it exists already)
-// username is now not required to sign in, only sign up
-//       the box only pops up after sign up button is hit for the first time
+// Implement AI
+// - maybe a "fun facts" page?
+// - maybe return a random landslide in the db?
 
 // the app is only accessable after user is authorized
 export default function App() {
@@ -64,6 +56,9 @@ const AppContent = () => {
               <li className="nav-item">
                 <Link to="/report" className="nav-list">Report</Link>
               </li>
+              <li classname="nav-item">
+                <Link to="/funfact" className="nav-list">Fun Fact</Link>
+              </li>
             </>
           )}
           {user ? ( 
@@ -86,6 +81,8 @@ const AppContent = () => {
           <Route path="/" element={<MapCoords/>} />
           <Route path="/query" element={<QueryForm/>} />
           <Route path="/report" element={<ReportForm/>} />
+          <Route path="/funfact" element={<FunFact/>} />
+          {/* <Route path="/api/funfact" element={<fun-fact/>} /> */}
         </Routes>
       </div>
     </div>
