@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import './App.css'; 
 import { getFunFact } from './api/fun-fact.js';
 
+//fix how the button looks
+// fix the loading time or add a pop up that says loading
+
 export default function FunFact() {
     const [fact, setFact] = useState('Loading a fun fact about landslides...');
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [fetchTrigger, setFetchTrigger] = useState(null);
 
     useEffect(() => {
         const fetchFunFact = async () => {
+            setIsLoading(null);
+            setError(null);
             try {
                 const data = await getFunFact();
                 setFact(data.fact);
-                setError(null);
 
                 } catch (err) {
                 console.error("Error fetching fact:", err);
@@ -24,7 +29,11 @@ export default function FunFact() {
         };
 
         fetchFunFact();
-    }, []); 
+    }, [fetchTrigger]); 
+
+    const handleNewClick = () => {
+        setFetchTrigger(prev => prev + 1);
+    }
 
     return(
         <div className="query-form-container"> 
@@ -36,6 +45,13 @@ export default function FunFact() {
             ) : (
                 <p> {fact} </p>
             )}
+            <button
+            onClick={handleNewClick}
+            disabled={isLoading}
+            className="auth-button auth-button-primary"
+            > 
+                Load New Fun Fact
+            </button>
         </div>
     );
 }

@@ -43,7 +43,10 @@ export async function getFunFact() {
         } catch (err) {
             retries++;
             if (retries < maxRetries) {
-                await new Promise(res => setTimeout(res, delay)); 
+                { 
+                    const currentDelay = delay; 
+                    await new Promise(res => setTimeout(res, currentDelay));
+                }
                 delay *= 2; 
             } else {
                 throw err;
