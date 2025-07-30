@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css'; 
-//import './api/fun-fact.js';
+import { getFunFact } from './api/fun-fact.js';
 
 export default function FunFact() {
     const [fact, setFact] = useState('Loading a fun fact about landslides...');
@@ -10,14 +10,16 @@ export default function FunFact() {
     useEffect(() => {
         const fetchFunFact = async () => {
             try {
-                const data = await fetch('../api/fun-fact');
-
-                console.log(data)
+                const data = await getFunFact();
                 setFact(data.fact);
-            } catch (err) {
+                setError(null);
+
+                } catch (err) {
                 console.error("Error fetching fact:", err);
+                setError('Failed to retrieve fun fact. Please try again later.');
+                setFact('Could not load a fun fact.'); 
             } finally {
-                setIsLoading(false);
+                setIsLoading(false); 
             }
         };
 
