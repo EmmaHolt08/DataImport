@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import './App.css'; 
 import { getFunFact } from './api/fun-fact.js';
 
-//fix how the button looks
-// fix the loading time or add a pop up that says loading
 
 export default function FunFact() {
     const [fact, setFact] = useState('Loading a fun fact about landslides...');
@@ -19,6 +17,7 @@ export default function FunFact() {
                 const data = await getFunFact();
                 setFact(data.fact);
 
+                new Promise(resolve => setTimeout(resolve, 1000)) //delay so it dosn't get over stressed
                 } catch (err) {
                 console.error("Error fetching fact:", err);
                 setError('Failed to retrieve fun fact. Please try again later.');
@@ -29,10 +28,13 @@ export default function FunFact() {
         };
 
         fetchFunFact();
-    }, [fetchTrigger]); 
+    }, [fetchTrigger]); //when the fetchTrigger changes the FunFact function is tiggered
+
 
     const handleNewClick = () => {
-        setFetchTrigger(prev => prev + 1);
+        setIsLoading(true);
+        setFact('Loading new fun fact...');
+        setFetchTrigger(prev => prev + 1); //the prev stuff is so it doesn't get stuck
     }
 
     return(
@@ -48,7 +50,7 @@ export default function FunFact() {
             <button
             onClick={handleNewClick}
             disabled={isLoading}
-            className="auth-button auth-button-primary"
+            className="auth-button auth-button-secondary"
             > 
                 Load New Fun Fact
             </button>

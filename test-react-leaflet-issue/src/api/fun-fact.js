@@ -32,6 +32,7 @@ export async function getFunFact() {
 
             const result = await response.json();
 
+            //if is basically so it doesn't respond w an empty string
             if (result.candidates && result.candidates.length > 0 &&
                 result.candidates[0].content && result.candidates[0].content.parts &&
                 result.candidates[0].content.parts.length > 0) {

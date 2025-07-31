@@ -32,24 +32,3 @@ CMD /bin/bash -c " \
     echo 'PostgreSQL is ready. Starting FastAPI app...' && \
     uvicorn main:app --app-dir awesome-project --host 0.0.0.0 --port 80 \
 "
-
-# # Use an official Python runtime as a parent image
-# FROM python:3.11-slim-buster
-
-# # Set the working directory in the container
-# WORKDIR /code
-
-# # Copy the requirements file into the container at /app
-# COPY requirements.txt .
-
-# # Install any needed packages specified in requirements.txt
-# RUN pip install --no-cache-dir -r requirements.txt
-
-# # Copy the rest of the application code into the container at /app
-# COPY . .
-
-# # Expose the port that Uvicorn will run on
-# EXPOSE 80
-
-# # Command to run the application using Uvicorn
-# CMD ["uvicorn", "main:app", "--app-dir", "awesome-project", "--host", "0.0.0.0", "--port", "80"]
