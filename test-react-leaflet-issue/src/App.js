@@ -7,11 +7,6 @@ import ReportForm from './ReportForm.js';
 import FunFact from './FunFact.js';
 import AuthPage, { AuthContext } from './AuthPage.js'; 
 
-//TO DO
-// Implement AI
-// - maybe a "fun facts" page?
-// - maybe return a random landslide in the db?
-
 // the app is only accessable after user is authorized
 export default function App() {
   return (
